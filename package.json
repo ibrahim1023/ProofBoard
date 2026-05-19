@@ -4,14 +4,16 @@
   "version": "0.1.0",
   "description": "Protocol assurance workspace for smart contracts.",
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "packages/shared-types",
+    "packages/analyzer"
   ],
   "scripts": {
     "dev": "npm --workspace @proofboard/web run dev",
     "build": "npm --workspace @proofboard/web run build",
     "lint": "npm --workspace @proofboard/web run lint",
-    "typecheck": "npm --workspace @proofboard/web run typecheck",
-    "test": "npm --workspace @proofboard/web run test"
+    "typecheck": "npm --workspaces --if-present run typecheck",
+    "test": "npm --workspaces --if-present run test"
   },
   "engines": {
     "node": ">=22"

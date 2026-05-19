@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
-import type { BoardId, ProtocolType, Workspace } from "@/lib/types";
+import type { BoardId, ProtocolType, Workspace } from "@proofboard/shared-types";
 
 const boardItems: Array<{ id: BoardId; label: string }> = [
   { id: "upload", label: "Project" },
@@ -25,6 +25,8 @@ const protocolLabels: Record<ProtocolType, string> = {
 export function ProofboardWorkspace() {
   const [workspace, setWorkspace] = useState<Workspace>(demoWorkspace);
   const [activeBoard, setActiveBoard] = useState<BoardId>("upload");
+  const primarySource = workspace.sources[0];
+  const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
 
   const approvedClaims = workspace.claims.filter((claim) => claim.status === "Human-approved").length;
   const openAssumptions = workspace.assumptions.filter(
@@ -40,11 +42,30 @@ export function ProofboardWorkspace() {
     [workspace.claims, workspace.properties]
   );
 
-  function updateField(field: keyof Pick<Workspace, "name" | "description" | "solidity">, value: string) {
-    setWorkspace((current) => ({
-      ...current,
-      [field]: value
-    }));
+  function updateField(field: "name" | "description" | "solidity", value: string) {
+    setWorkspace((current) => {
+      if (field === "solidity") {
+        const [firstSource, ...remainingSources] = current.sources;
+
+        return {
+          ...current,
+          sources: [
+            {
+              id: firstSource?.id ?? "source_inline",
+              path: firstSource?.path ?? "src/Vault.sol",
+              language: "solidity",
+              content: value
+            },
+            ...remainingSources
+          ]
+        };
+      }
+
+      return {
+        ...current,
+        [field]: value
+      };
+    });
   }
 
   function updateProtocolType(value: ProtocolType) {
@@ -102,7 +123,7 @@ export function ProofboardWorkspace() {
             <h2>{workspace.name || "New ProofBoard workspace"}</h2>
           </div>
           <div className="summary-strip" aria-label="Workspace summary">
-            <Metric label="Contracts" value={workspace.contracts.length} />
+            <Metric label="Contracts" value={workspace.protocolMap.contracts.length} />
             <Metric label="Claims approved" value={approvedClaims} />
             <Metric label="Properties" value={workspace.properties.length} />
             <Metric label="Open assumptions" value={openAssumptions} />
@@ -157,7 +178,7 @@ export function ProofboardWorkspace() {
                   onChange={(event) => updateField("solidity", event.target.value)}
                   placeholder="Paste a vault contract here."
                   spellCheck={false}
-                  value={workspace.solidity}
+                  value={primarySource?.content ?? ""}
                 />
               </label>
 
@@ -187,16 +208,27 @@ export function ProofboardWorkspace() {
                 <h3>Contracts and flows</h3>
               </div>
               <div className="map-tree">
-                <TreeGroup title="Contracts" items={workspace.contracts} empty="Paste Solidity or load the demo." />
+                <TreeGroup
+                  title="Contracts"
+                  items={workspace.protocolMap.contracts.map((contract) =>
+                    contract.inherits.length > 0 ? `${contract.name} inherits ${contract.inherits.join(", ")}` : contract.name
+                  )}
+                  empty="Paste Solidity or load the demo."
+                />
                 <TreeGroup
                   title="User flows"
-                  items={workspace.functions.filter((fn) => fn.flow === "user").map((fn) => fn.name)}
+                  items={workspace.protocolMap.userFlows.map((fn) => fn.name)}
                   empty="No user flows detected yet."
                 />
                 <TreeGroup
                   title="Privileged flows"
-                  items={workspace.functions.filter((fn) => fn.flow === "privileged").map((fn) => fn.name)}
+                  items={workspace.protocolMap.privilegedFunctions.map((fn) => fn.name)}
                   empty="No privileged flows detected yet."
+                />
+                <TreeGroup
+                  title="Token dependencies"
+                  items={workspace.protocolMap.tokenDependencies.map((item) => item.name)}
+                  empty="No token dependencies detected yet."
                 />
                 <TreeGroup title="External assumptions" items={workspace.assumptions.map((item) => item.text)} empty="No assumptions recorded yet." />
               </div>
@@ -207,19 +239,48 @@ export function ProofboardWorkspace() {
                 <h3>Detected entrypoints</h3>
               </div>
               <div className="stack">
-                {workspace.functions.length === 0 ? (
+                {allFunctions.length === 0 ? (
                   <EmptyState text="No functions detected. Add Solidity or load the demo workspace." />
                 ) : (
-                  workspace.functions.map((fn) => (
-                    <article className="compact-card" key={fn.name}>
+                  allFunctions.map((fn) => (
+                    <article className="compact-card" key={fn.id}>
                       <div>
                         <strong>{fn.name}</strong>
                         <span>{fn.visibility} / {fn.flow}</span>
                       </div>
+                      <span>{fn.signature}</span>
                       <p>{fn.notes}</p>
                     </article>
                   ))
                 )}
+              </div>
+            </div>
+            <div className="section-block wide">
+              <div className="section-heading">
+                <p className="eyebrow">Analysis notes</p>
+                <h3>State, calls, and parser warnings</h3>
+              </div>
+              <div className="analysis-grid">
+                <TreeGroup
+                  title="Critical state"
+                  items={workspace.protocolMap.criticalState.map((state) => `${state.type} ${state.name}`)}
+                  empty="No critical state detected yet."
+                />
+                <TreeGroup
+                  title="External calls"
+                  items={workspace.protocolMap.externalCalls.map((call) => call.expression)}
+                  empty="No external calls detected yet."
+                />
+                <TreeGroup
+                  title="Roles"
+                  items={workspace.protocolMap.roles.map((role) => `${role.name}: ${role.source}`)}
+                  empty="No roles detected yet."
+                />
+                <TreeGroup
+                  title="Parser warnings"
+                  items={workspace.protocolMap.parserWarnings}
+                  empty="No parser warnings."
+                />
               </div>
             </div>
           </section>
