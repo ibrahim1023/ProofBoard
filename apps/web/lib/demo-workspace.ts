@@ -1,3 +1,4 @@
+import { analyzeSoliditySource } from "@proofboard/analyzer";
 import type { Contract, ProtocolFunction, SourceFile, Workspace } from "@proofboard/shared-types";
 
 export const demoSolidity = `// SPDX-License-Identifier: MIT
@@ -87,7 +88,7 @@ const demoFunctions: ProtocolFunction[] = [
   }
 ];
 
-const demoContract: Contract = {
+const fallbackContract: Contract = {
   id: "contract_example_vault",
   name: "ExampleVault",
   path: sourceFile.path,
@@ -137,7 +138,7 @@ export const demoWorkspace: Workspace = {
     "ERC4626 vault with pause controls, share accounting flows, and fee recipient administration.",
   sources: [sourceFile],
   protocolMap: {
-    contracts: [demoContract],
+    contracts: [fallbackContract],
     roles: [
       {
         id: "role_owner",
@@ -146,7 +147,7 @@ export const demoWorkspace: Workspace = {
         privilegedFunctions: ["function_example_vault_pause", "function_example_vault_set_fee_recipient"]
       }
     ],
-    criticalState: demoContract.stateVariables,
+    criticalState: fallbackContract.stateVariables,
     assetFlows: [
       {
         id: "flow_deposit",
@@ -165,7 +166,7 @@ export const demoWorkspace: Workspace = {
         notes: "User burns shares and receives assets."
       }
     ],
-    externalCalls: demoContract.externalCalls,
+    externalCalls: fallbackContract.externalCalls,
     privilegedFunctions: demoFunctions.filter((fn) => fn.flow === "privileged"),
     userFlows: demoFunctions.filter((fn) => fn.flow === "user"),
     tokenDependencies: [
@@ -312,6 +313,12 @@ export const demoWorkspace: Workspace = {
       summary: "Harness scaffold exists but has not been executed."
     }
   ]
+};
+
+const analyzedProtocolMap = analyzeSoliditySource(sourceFile);
+demoWorkspace.protocolMap = {
+  ...analyzedProtocolMap,
+  parserWarnings: analyzedProtocolMap.parserWarnings.filter((warning) => !warning.startsWith("Static regex parser"))
 };
 
 export const emptyWorkspace: Workspace = {

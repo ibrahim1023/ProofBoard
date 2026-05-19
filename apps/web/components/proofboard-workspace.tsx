@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { analyzeSoliditySource } from "@proofboard/analyzer";
 import { demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
 import type { BoardId, ProtocolType, Workspace } from "@proofboard/shared-types";
 
@@ -46,18 +47,17 @@ export function ProofboardWorkspace() {
     setWorkspace((current) => {
       if (field === "solidity") {
         const [firstSource, ...remainingSources] = current.sources;
+        const nextSource = {
+          id: firstSource?.id ?? "source_inline",
+          path: firstSource?.path ?? "src/Vault.sol",
+          language: "solidity" as const,
+          content: value
+        };
 
         return {
           ...current,
-          sources: [
-            {
-              id: firstSource?.id ?? "source_inline",
-              path: firstSource?.path ?? "src/Vault.sol",
-              language: "solidity",
-              content: value
-            },
-            ...remainingSources
-          ]
+          sources: [nextSource, ...remainingSources],
+          protocolMap: analyzeSoliditySource(nextSource)
         };
       }
 
