@@ -1,0 +1,4 @@
+# Local planning/source context files intentionally excluded from base commits.
+scope.md
+task.md
+progress.md
