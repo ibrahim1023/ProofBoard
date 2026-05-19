@@ -19,7 +19,15 @@ Recommended stack:
 
 - Next.js
 - TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Monaco editor
-- React Flow
+- CSS modules/global CSS for the current scaffold
+- shadcn/ui, Monaco editor, and React Flow in later phases
+
+Current Phase 1 implementation:
+
+- project intake form
+- protocol type selector
+- Solidity paste area
+- disabled repo zip upload placeholder
+- seeded ERC4626 demo workspace
+- navigation for all MVP boards
+- static protocol map, intent board, invariant board, assumption debt, ledger, harness, results, and export views

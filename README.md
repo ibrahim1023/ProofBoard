@@ -44,6 +44,29 @@ docs/                        Architecture and product docs
 evals/                       AI and agent behavior evaluations
 ```
 
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the web app:
+
+```bash
+npm run dev
+```
+
+Validation:
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
 ## Status
 
-This repository is currently scaffold-only. Tooling, dependencies, implementation, and validation commands are not configured yet.
+Phase 0 tooling is configured and Phase 1 contains a static workspace MVP with demo ERC4626 data, project intake, board navigation, and placeholder surfaces for the full assurance workflow.

@@ -22,22 +22,22 @@ ProofBoard is a web-based protocol assurance workspace for smart contract teams.
 - `evals/`: AI and agent behavior datasets, evaluators, experiments, and results.
 
 ## Commands
-This repository is currently scaffold-only. Do not invent passing validation commands.
+Use npm workspaces from the repository root.
 
 Install:
-- Not configured yet.
+- `npm install`
 
 Test:
-- Not configured yet.
+- `npm test`
 
 Lint:
-- Not configured yet.
+- `npm run lint`
 
 Typecheck:
-- Not configured yet.
+- `npm run typecheck`
 
 Build:
-- Not configured yet.
+- `npm run build`
 
 Eval:
 - Not configured yet.
@@ -61,7 +61,8 @@ Eval:
 
 ## Validation Gates
 Before completion:
-- Run targeted tests, lint, typecheck, or build only when those commands exist.
+- Run targeted tests for changed behavior.
+- Run `npm run lint`, `npm run typecheck`, and `npm run build` for web changes.
 - For documentation-only changes, inspect changed files and report that automated gates are not configured.
 - Update `task.md` and `progress.md` with commands run, results, risks, and next step.
 

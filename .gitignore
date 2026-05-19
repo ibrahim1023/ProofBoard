@@ -2,3 +2,8 @@
 scope.md
 task.md
 progress.md
+
+# Dependencies and build outputs.
+node_modules/
+.next/
+*.tsbuildinfo
