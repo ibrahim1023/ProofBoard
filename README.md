@@ -4,6 +4,10 @@ ProofBoard is a protocol assurance workspace for smart contracts.
 
 It helps teams turn protocol intent into executable invariants, verification evidence, and assumption debt.
 
+## Why This Exists
+
+ProofBoard follows the formal verification direction that AI should help defenders specify, verify, and protect high-value secure cores, not merely generate more code or longer bug lists.
+
 ProofBoard does not claim a protocol is safe. It shows:
 
 - what the protocol appears to rely on
