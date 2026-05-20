@@ -432,6 +432,44 @@ textarea {
   padding: 6px 8px;
 }
 
+.harness-layout {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(250px, 0.45fr) minmax(0, 1fr);
+}
+
+.harness-file-list,
+.harness-viewer,
+.setup-list {
+  display: grid;
+  gap: 10px;
+}
+
+.harness-file {
+  background: #fbfcfb;
+  border: 1px solid var(--line);
+  color: var(--text);
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  text-align: left;
+}
+
+.harness-file.active {
+  border-color: var(--accent);
+}
+
+.harness-file small,
+.setup-list span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.setup-list span {
+  border-left: 3px solid var(--accent);
+  padding: 8px 10px;
+}
+
 .empty-state {
   color: var(--muted);
   margin: 0;
@@ -466,6 +504,10 @@ textarea {
   }
 
   .property-row {
+    grid-template-columns: 1fr;
+  }
+
+  .harness-layout {
     grid-template-columns: 1fr;
   }
 }

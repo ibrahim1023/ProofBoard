@@ -45,4 +45,16 @@ describe("ProofBoard workspace", () => {
     expect(screen.getAllByText("critical").length).toBeGreaterThan(0);
     expect(screen.getByText("weak_or_vacuous")).toBeInTheDocument();
   });
+
+  it("renders generated Foundry harness files and command", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Harness" }));
+
+    expect(screen.getByText("forge test --match-contract ProofboardVaultInvariant")).toBeInTheDocument();
+    expect(screen.getAllByText("test/invariants/ProofboardVaultInvariant.t.sol").length).toBeGreaterThan(0);
+    expect(screen.getByText("test/invariants/handlers/VaultHandler.sol")).toBeInTheDocument();
+    expect(screen.getByText("test/invariants/mocks/FeeOnTransferToken.sol")).toBeInTheDocument();
+    expect(screen.getByText("ProofBoard property: property_redeemable_assets", { exact: false })).toBeInTheDocument();
+  });
 });

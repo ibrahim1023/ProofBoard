@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { analyzeSoliditySource } from "@proofboard/analyzer";
+import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
 import {
   generatePropertiesFromClaims,
   linkAssumptionsToProperties,
@@ -45,6 +46,7 @@ export function ProofboardWorkspace() {
   const [workspace, setWorkspace] = useState<Workspace>(demoWorkspace);
   const [activeBoard, setActiveBoard] = useState<BoardId>("upload");
   const [assumptionFilter, setAssumptionFilter] = useState<(typeof assumptionFilterOptions)[number]>("All");
+  const [selectedHarnessPath, setSelectedHarnessPath] = useState("test/invariants/ProofboardVaultInvariant.t.sol");
   const primarySource = workspace.sources[0];
   const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
 
@@ -66,6 +68,8 @@ export function ProofboardWorkspace() {
   const visibleAssumptions = workspace.assumptions.filter((assumption) =>
     assumptionFilter === "All" ? true : assumption.status === assumptionFilter
   );
+  const harnessBundle = useMemo(() => generateFoundryHarnessBundle(workspace), [workspace]);
+  const selectedHarnessFile = harnessBundle.files.find((file) => file.path === selectedHarnessPath) ?? harnessBundle.files[0];
 
   function updateField(field: "name" | "description" | "solidity", value: string) {
     setWorkspace((current) => {
@@ -162,6 +166,17 @@ export function ProofboardWorkspace() {
       ...current,
       assumptions: current.assumptions.map((assumption) => (assumption.id === assumptionId ? { ...assumption, status } : assumption))
     }));
+  }
+
+  function downloadHarnessBundle() {
+    const payload = JSON.stringify(harnessBundle, null, 2);
+    const blob = new Blob([payload], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "generated-foundry-invariants.json";
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -563,11 +578,45 @@ export function ProofboardWorkspace() {
         )}
 
         {activeBoard === "harness" && (
-          <CodePreview
-            eyebrow="Generated Foundry scaffold"
-            title="Harness Preview"
-            code={`contract ProofboardVaultInvariant is Test {\n    VaultHandler handler;\n\n    function invariant_redeemableAssetsRespectShares() public {\n        handler.assertRedeemableAssetsRespectShares();\n    }\n}`}
-          />
+          <section className="section-block wide">
+            <div className="section-heading">
+              <p className="eyebrow">Generated Foundry scaffold</p>
+              <h3>Harness Preview</h3>
+            </div>
+            <div className="action-row">
+              <button className="primary-action" onClick={downloadHarnessBundle} type="button">
+                Download bundle
+              </button>
+              <code>{harnessBundle.suggestedCommand}</code>
+            </div>
+            <div className="harness-layout">
+              <div className="harness-file-list" aria-label="Generated harness files">
+                {harnessBundle.files.map((file) => (
+                  <button
+                    className={selectedHarnessFile?.path === file.path ? "harness-file active" : "harness-file"}
+                    key={file.path}
+                    onClick={() => setSelectedHarnessPath(file.path)}
+                    type="button"
+                  >
+                    <span>{file.path}</span>
+                    <small>{file.propertyIds.length > 0 ? file.propertyIds.join(", ") : "support artifact"}</small>
+                  </button>
+                ))}
+              </div>
+              <div className="harness-viewer">
+                <div className="card-title-row">
+                  <strong>{selectedHarnessFile?.path}</strong>
+                  <StatusPill label="scaffold code" />
+                </div>
+                <pre className="code-preview">{selectedHarnessFile?.content ?? "No generated file selected."}</pre>
+              </div>
+            </div>
+            <div className="setup-list">
+              {harnessBundle.setupInstructions.map((instruction) => (
+                <span key={instruction}>{instruction}</span>
+              ))}
+            </div>
+          </section>
         )}
 
         {activeBoard === "results" && (
