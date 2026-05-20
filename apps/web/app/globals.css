@@ -215,10 +215,19 @@ textarea {
 }
 
 .code-input,
-.code-preview {
+.code-preview,
+.claim-editor {
   font-family: "SFMono-Regular", Consolas, monospace;
   line-height: 1.5;
+}
+
+.code-input,
+.code-preview {
   min-height: 260px;
+}
+
+.claim-editor {
+  min-height: 112px;
 }
 
 .code-preview {
@@ -240,6 +249,25 @@ textarea {
 .file-control {
   border: 1px solid var(--accent);
   padding: 10px 14px;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inline-actions button {
+  background: #f8faf8;
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 7px 10px;
+}
+
+.status-stack {
+  align-content: start;
+  display: grid;
+  gap: 6px;
 }
 
 .primary-action {

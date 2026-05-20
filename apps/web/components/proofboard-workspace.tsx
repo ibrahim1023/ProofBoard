@@ -2,8 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { analyzeSoliditySource } from "@proofboard/analyzer";
+import {
+  generatePropertiesFromClaims,
+  suggestClaimsFromProtocolMap,
+  suggestTokenAssumptions
+} from "@proofboard/property-engine";
 import { demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
-import type { BoardId, ProtocolType, Workspace } from "@proofboard/shared-types";
+import type { Assumption, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
 
 const boardItems: Array<{ id: BoardId; label: string }> = [
   { id: "upload", label: "Project" },
@@ -57,7 +62,9 @@ export function ProofboardWorkspace() {
         return {
           ...current,
           sources: [nextSource, ...remainingSources],
-          protocolMap: analyzeSoliditySource(nextSource)
+          protocolMap: analyzeSoliditySource(nextSource),
+          claims: mergeClaims(current.claims, suggestClaimsFromProtocolMap(analyzeSoliditySource(nextSource))),
+          assumptions: mergeAssumptions(current.assumptions, suggestTokenAssumptions(analyzeSoliditySource(nextSource)))
         };
       }
 
@@ -83,6 +90,44 @@ export function ProofboardWorkspace() {
   function loadDemoWorkspace() {
     setWorkspace(demoWorkspace);
     setActiveBoard("map");
+  }
+
+  function refreshClaimSuggestions() {
+    setWorkspace((current) => ({
+      ...current,
+      claims: mergeClaims(current.claims, suggestClaimsFromProtocolMap(current.protocolMap)),
+      assumptions: mergeAssumptions(current.assumptions, suggestTokenAssumptions(current.protocolMap))
+    }));
+  }
+
+  function updateClaimStatus(claimId: string, status: Claim["status"]) {
+    setWorkspace((current) => ({
+      ...current,
+      claims: current.claims.map((claim) => (claim.id === claimId ? { ...claim, status } : claim))
+    }));
+  }
+
+  function updateClaimText(claimId: string, text: string) {
+    setWorkspace((current) => ({
+      ...current,
+      claims: current.claims.map((claim) =>
+        claim.id === claimId
+          ? {
+              ...claim,
+              text,
+              status: claim.status === "Rejected" ? "Rejected" : "Edited"
+            }
+          : claim
+      )
+    }));
+  }
+
+  function generateInvariantProperties() {
+    setWorkspace((current) => ({
+      ...current,
+      properties: mergeProperties(current.properties, generatePropertiesFromClaims(current.claims, current.protocolMap))
+    }));
+    setActiveBoard("invariants");
   }
 
   return (
@@ -292,6 +337,14 @@ export function ProofboardWorkspace() {
               <p className="eyebrow">Human approval required</p>
               <h3>Intent Board</h3>
             </div>
+            <div className="action-row">
+              <button className="primary-action" onClick={refreshClaimSuggestions} type="button">
+                Generate suggestions
+              </button>
+              <button className="secondary-action" onClick={generateInvariantProperties} type="button">
+                Generate invariants
+              </button>
+            </div>
             <div className="card-grid">
               {workspace.claims.length === 0 ? (
                 <EmptyState text="No claims yet. ProofBoard will propose claims, but humans approve intent." />
@@ -302,9 +355,21 @@ export function ProofboardWorkspace() {
                       <strong>{claim.title}</strong>
                       <StatusPill label={claim.status} />
                     </div>
-                    <p>{claim.text}</p>
+                    <textarea
+                      className="claim-editor"
+                      onChange={(event) => updateClaimText(claim.id, event.target.value)}
+                      value={claim.text}
+                    />
                     <span>Source: {claim.source.join(", ")}</span>
                     <span>Confidence: {Math.round(claim.confidence * 100)}% / Severity: {claim.severity}</span>
+                    <div className="inline-actions">
+                      <button type="button" onClick={() => updateClaimStatus(claim.id, "Human-approved")}>
+                        Approve
+                      </button>
+                      <button type="button" onClick={() => updateClaimStatus(claim.id, "Rejected")}>
+                        Reject
+                      </button>
+                    </div>
                   </article>
                 ))
               )}
@@ -318,13 +383,21 @@ export function ProofboardWorkspace() {
               <p className="eyebrow">Candidate properties</p>
               <h3>Invariant Board</h3>
             </div>
+            <div className="action-row">
+              <button className="primary-action" onClick={generateInvariantProperties} type="button">
+                Generate from approved claims
+              </button>
+            </div>
             <div className="stack">
               {workspace.properties.length === 0 ? (
                 <EmptyState text="Approved claims will become candidate invariants here." />
               ) : (
                 workspace.properties.map((property) => (
                   <article className="property-row" key={property.id}>
-                    <StatusPill label={property.verificationLevel} />
+                    <div className="status-stack">
+                      <StatusPill label={property.status} />
+                      <StatusPill label={property.verificationLevel} />
+                    </div>
                     <p>{property.text}</p>
                     <strong>Next: {property.nextAction}</strong>
                   </article>
@@ -488,4 +561,27 @@ function CodePreview({ eyebrow, title, code }: { eyebrow: string; title: string;
       <pre className="code-preview">{code}</pre>
     </section>
   );
+}
+
+function mergeClaims(existing: Claim[], suggested: Claim[]) {
+  const existingById = new Map(existing.map((claim) => [claim.id, claim]));
+  return suggested.map((claim) => existingById.get(claim.id) ?? claim);
+}
+
+function mergeProperties(existing: Property[], generated: Property[]) {
+  const generatedIds = new Set(generated.map((property) => property.id));
+  return [...existing.filter((property) => !generatedIds.has(property.id)), ...generated];
+}
+
+function mergeAssumptions(existing: Assumption[], suggested: Assumption[]) {
+  const existingById = new Map(existing.map((assumption) => [assumption.id, assumption]));
+  const merged = [...existing];
+
+  suggested.forEach((assumption) => {
+    if (!existingById.has(assumption.id)) {
+      merged.push(assumption);
+    }
+  });
+
+  return merged;
 }
