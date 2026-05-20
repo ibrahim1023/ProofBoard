@@ -2,7 +2,7 @@
 
 ProofBoard is a web-based protocol assurance workspace for smart contract teams. It turns protocol intent into reviewed claims, candidate invariants, Foundry harness scaffolds, verification evidence, and visible assumption debt.
 
-ProofBoard follows the formal verification direction that AI should help defenders specify, verify, and protect high-value secure cores, rather than merely generate more code or longer bug lists.
+ProofBoard aligns with Vitalik Buterin's formal verification direction: AI should help defenders specify, verify, and protect high-value secure cores, rather than merely generate more code or longer bug lists.
 
 Core operating principle:
 
