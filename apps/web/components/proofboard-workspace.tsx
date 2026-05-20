@@ -57,9 +57,11 @@ export function ProofboardWorkspace() {
     () =>
       workspace.properties.map((property) => {
         const claim = workspace.claims.find((item) => item.id === property.claimId);
-        return { property, claim };
+        const assumptions = workspace.assumptions.filter((assumption) => property.assumptions.includes(assumption.id));
+        const evidence = workspace.evidence.filter((item) => property.evidence.includes(item.id));
+        return { property, claim, assumptions, evidence };
       }),
-    [workspace.claims, workspace.properties]
+    [workspace.assumptions, workspace.claims, workspace.evidence, workspace.properties]
   );
   const visibleAssumptions = workspace.assumptions.filter((assumption) =>
     assumptionFilter === "All" ? true : assumption.status === assumptionFilter
@@ -516,22 +518,46 @@ export function ProofboardWorkspace() {
                 <span>Property</span>
                 <span>Source</span>
                 <span>Status</span>
+                <span>Evidence</span>
                 <span>Assumptions</span>
+                <span>Risk</span>
                 <span>Next action</span>
               </div>
               {ledgerRows.length === 0 ? (
                 <EmptyState text="No ledger entries yet." />
               ) : (
-                ledgerRows.map(({ property, claim }) => (
+                ledgerRows.map(({ property, claim, assumptions, evidence }) => (
                   <div className="ledger-row" key={property.id}>
-                    <span>{property.text}</span>
-                    <span>{claim?.title ?? "Unlinked claim"}</span>
-                    <StatusPill label={property.verificationLevel} />
-                    <span>{property.assumptions.length} linked</span>
+                    <div className="ledger-cell">
+                      <strong>{property.text}</strong>
+                      <span>{property.skepticStatus}</span>
+                    </div>
+                    <div className="ledger-cell">
+                      <span>{claim?.title ?? "Unlinked claim"}</span>
+                      <span>{claim?.status ?? "No claim"}</span>
+                    </div>
+                    <div className="status-stack">
+                      <StatusPill label={property.verificationLevel} />
+                      <StatusPill label={property.status} />
+                    </div>
+                    <div className="ledger-cell">
+                      <span>{summarizeEvidence(evidence)}</span>
+                      <span>{evidence.length > 0 ? evidence.map((item) => item.source).join(", ") : "No evidence attached"}</span>
+                    </div>
+                    <div className="ledger-cell">
+                      <span>{assumptions.length} linked</span>
+                      <span>{assumptions.map((assumption) => assumption.status).join(", ") || "None"}</span>
+                    </div>
+                    <StatusPill label={property.risk} />
                     <span>{property.nextAction}</span>
                   </div>
                 ))
               )}
+            </div>
+            <div className="status-timeline">
+              {["claimed_only", "human_approved", "test_generated", "fuzzed_passed", "fuzzed_failed", "weak_or_vacuous", "out_of_scope"].map((level) => (
+                <span key={level}>{level}</span>
+              ))}
             </div>
           </section>
         )}
@@ -657,4 +683,22 @@ function mergeAssumptions(existing: Assumption[], suggested: Assumption[]) {
   });
 
   return merged;
+}
+
+function summarizeEvidence(evidence: Workspace["evidence"]) {
+  if (evidence.length === 0) {
+    return "None";
+  }
+
+  const strongest = evidence.reduce((current, next) => (evidenceRank(next.strength) > evidenceRank(current.strength) ? next : current));
+  return `${strongest.strength} evidence`;
+}
+
+function evidenceRank(strength: Workspace["evidence"][number]["strength"]) {
+  return {
+    none: 0,
+    weak: 1,
+    medium: 2,
+    strong: 3
+  }[strength];
 }

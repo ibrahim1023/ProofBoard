@@ -385,8 +385,15 @@ textarea {
 .ledger-row {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(260px, 1.6fr) minmax(140px, 0.8fr) minmax(130px, 0.7fr) minmax(110px, 0.5fr) minmax(220px, 1.2fr);
-  min-width: 920px;
+  grid-template-columns:
+    minmax(260px, 1.5fr)
+    minmax(150px, 0.8fr)
+    minmax(130px, 0.7fr)
+    minmax(150px, 0.8fr)
+    minmax(150px, 0.8fr)
+    minmax(90px, 0.4fr)
+    minmax(220px, 1.1fr);
+  min-width: 1180px;
   padding: 12px;
 }
 
@@ -400,6 +407,29 @@ textarea {
 
 .ledger-row {
   border-top: 1px solid var(--line);
+}
+
+.ledger-cell {
+  display: grid;
+  gap: 5px;
+}
+
+.ledger-cell span,
+.status-timeline span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.status-timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-timeline span {
+  background: #eef2ef;
+  border: 1px solid var(--line);
+  padding: 6px 8px;
 }
 
 .empty-state {

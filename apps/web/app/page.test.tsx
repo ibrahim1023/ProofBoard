@@ -34,4 +34,15 @@ describe("ProofBoard workspace", () => {
     fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Out of scope" } });
     expect(screen.getByText("Out of scope")).toBeInTheDocument();
   });
+
+  it("renders verification ledger evidence and risk details", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Ledger" }));
+
+    expect(screen.getByText("Evidence over confidence")).toBeInTheDocument();
+    expect(screen.getByText("weak evidence")).toBeInTheDocument();
+    expect(screen.getAllByText("critical").length).toBeGreaterThan(0);
+    expect(screen.getByText("weak_or_vacuous")).toBeInTheDocument();
+  });
 });
