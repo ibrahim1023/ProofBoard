@@ -48,6 +48,7 @@ const validWorkspace: Workspace = {
       id: "property_1",
       claimId: "claim_1",
       text: "Redeemable assets remain consistent with share balances.",
+      status: "Draft",
       verificationLevel: "human_approved",
       risk: "critical",
       assumptions: ["assumption_1"],
@@ -104,6 +105,15 @@ describe("shared schema validation", () => {
       message:
         "Expected one of: claimed_only, ai_inferred, human_approved, test_generated, fuzzed_passed, fuzzed_failed, symbolically_checked, formally_proven, weak_or_vacuous, out_of_scope."
     });
+  });
+
+  it("rejects invalid property statuses", () => {
+    const issues = validateProperty({
+      ...validWorkspace.properties[0],
+      status: "Done" as never
+    });
+
+    expect(issues[0]?.path).toBe("property.status");
   });
 
   it("rejects invalid assumption statuses", () => {
