@@ -6,7 +6,8 @@
   "workspaces": [
     "apps/web",
     "packages/shared-types",
-    "packages/analyzer"
+    "packages/analyzer",
+    "packages/property-engine"
   ],
   "scripts": {
     "dev": "npm --workspace @proofboard/web run dev",
