@@ -157,39 +157,105 @@ export function applySkepticReview(property: Property, map: ProtocolMap): Proper
 }
 
 export function suggestTokenAssumptions(map: ProtocolMap): Assumption[] {
-  if (map.tokenDependencies.length === 0) {
-    return [];
+  const assumptions: Assumption[] = [];
+
+  if (map.tokenDependencies.length > 0) {
+    assumptions.push(
+      {
+        id: "assumption_standard_erc20",
+        text: "Underlying token behaves like a standard ERC20.",
+        whyItMatters: "Non-standard return values or callbacks can invalidate generated vault accounting evidence.",
+        status: "Needs test",
+        severity: "high",
+        relatedProperties: [],
+        relatedFunctions: ["deposit", "mint", "withdraw", "redeem"]
+      },
+      {
+        id: "assumption_no_fee_on_transfer",
+        text: "Underlying token has no fee-on-transfer behavior.",
+        whyItMatters: "Fee-on-transfer behavior can make received assets differ from requested assets.",
+        status: "Needs invariant",
+        severity: "high",
+        relatedProperties: [],
+        relatedFunctions: ["deposit", "withdraw"]
+      },
+      {
+        id: "assumption_no_rebase",
+        text: "Underlying token does not rebase.",
+        whyItMatters: "Rebases can change vault balances without explicit user flows.",
+        status: "Unresolved",
+        severity: "medium",
+        relatedProperties: [],
+        relatedFunctions: ["deposit", "withdraw", "redeem"]
+      },
+      {
+        id: "assumption_no_reentrant_token",
+        text: "Underlying token does not reenter vault flows.",
+        whyItMatters: "Token callbacks can create multi-step states that simple handlers do not exercise.",
+        status: "Needs test",
+        severity: "high",
+        relatedProperties: [],
+        relatedFunctions: ["deposit", "withdraw"]
+      },
+      {
+        id: "assumption_decimals_compatible",
+        text: "Token decimals are compatible with vault accounting.",
+        whyItMatters: "Decimal mismatches can amplify rounding and share accounting edge cases.",
+        status: "Needs invariant",
+        severity: "medium",
+        relatedProperties: [],
+        relatedFunctions: ["deposit", "mint", "withdraw", "redeem"]
+      }
+    );
   }
 
-  return [
-    {
-      id: "assumption_standard_erc20",
-      text: "Underlying token behaves like a standard ERC20.",
-      whyItMatters: "Non-standard return values or callbacks can invalidate generated vault accounting evidence.",
-      status: "Needs test",
-      severity: "high",
-      relatedProperties: [],
-      relatedFunctions: ["deposit", "mint", "withdraw", "redeem"]
-    },
-    {
-      id: "assumption_no_fee_on_transfer",
-      text: "Underlying token has no fee-on-transfer behavior.",
-      whyItMatters: "Fee-on-transfer behavior can make received assets differ from requested assets.",
-      status: "Needs invariant",
-      severity: "high",
-      relatedProperties: [],
-      relatedFunctions: ["deposit", "withdraw"]
-    },
-    {
-      id: "assumption_no_rebase",
-      text: "Underlying token does not rebase.",
-      whyItMatters: "Rebases can change vault balances without explicit user flows.",
-      status: "Unresolved",
+  if (map.privilegedFunctions.length > 0 || map.roles.length > 0) {
+    assumptions.push({
+      id: "assumption_admin_policy",
+      text: "Admin actions follow the documented emergency policy.",
+      whyItMatters: "Privileged paths can pause, redirect, or alter protocol behavior outside normal user flows.",
+      status: "Accepted risk",
       severity: "medium",
       relatedProperties: [],
-      relatedFunctions: ["deposit", "withdraw", "redeem"]
-    }
-  ];
+      relatedFunctions: map.privilegedFunctions.map((fn) => fn.name)
+    });
+  }
+
+  if (map.privilegedFunctions.some((fn) => fn.name.toLowerCase().includes("strategy"))) {
+    assumptions.push({
+      id: "assumption_strategy_returns_funds",
+      text: "Strategy integrations can return funds when needed.",
+      whyItMatters: "Vault solvency can depend on strategy liquidity outside the ERC4626 surface.",
+      status: "Unresolved",
+      severity: "high",
+      relatedProperties: [],
+      relatedFunctions: map.privilegedFunctions.map((fn) => fn.name)
+    });
+  }
+
+  if (map.externalCalls.some((call) => call.target.toLowerCase().includes("oracle"))) {
+    assumptions.push({
+      id: "assumption_oracle_fresh",
+      text: "Oracle price data is fresh and cannot be cheaply manipulated.",
+      whyItMatters: "Stale or manipulated oracle inputs can invalidate asset/share accounting assumptions.",
+      status: "Needs symbolic check",
+      severity: "high",
+      relatedProperties: [],
+      relatedFunctions: map.externalCalls.map((call) => call.functionId ?? call.target)
+    });
+  }
+
+  return assumptions;
+}
+
+export function linkAssumptionsToProperties(assumptions: Assumption[], properties: Property[]): Assumption[] {
+  return assumptions.map((assumption) => ({
+    ...assumption,
+    relatedProperties: unique([
+      ...assumption.relatedProperties,
+      ...properties.filter((property) => property.assumptions.includes(assumption.id)).map((property) => property.id)
+    ])
+  }));
 }
 
 function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
@@ -303,6 +369,10 @@ function resolveFunctionNames(map: ProtocolMap, candidates: string[]) {
   const allFunctions = [...map.userFlows, ...map.privilegedFunctions, ...map.contracts.flatMap((contract) => contract.functions)];
   const names = new Set(allFunctions.map((fn) => fn.name));
   return candidates.filter((candidate) => names.has(candidate));
+}
+
+function unique(values: string[]) {
+  return [...new Set(values)];
 }
 
 function hasAnyFunction(functions: ProtocolFunction[], names: string[]) {

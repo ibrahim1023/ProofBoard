@@ -3,6 +3,7 @@ import { analyzeSoliditySource } from "@proofboard/analyzer";
 import {
   generatePropertiesFromClaims,
   applySkepticReview,
+  linkAssumptionsToProperties,
   suggestClaimsFromProtocolMap,
   suggestTokenAssumptions
 } from "./index";
@@ -44,11 +45,10 @@ describe("property engine", () => {
   it("suggests token assumptions for vault maps", () => {
     const assumptions = suggestTokenAssumptions(protocolMap);
 
-    expect(assumptions.map((assumption) => assumption.id)).toEqual([
-      "assumption_standard_erc20",
-      "assumption_no_fee_on_transfer",
-      "assumption_no_rebase"
-    ]);
+    expect(assumptions.map((assumption) => assumption.id)).toContain("assumption_standard_erc20");
+    expect(assumptions.map((assumption) => assumption.id)).toContain("assumption_no_fee_on_transfer");
+    expect(assumptions.map((assumption) => assumption.id)).toContain("assumption_no_reentrant_token");
+    expect(assumptions.map((assumption) => assumption.id)).toContain("assumption_admin_policy");
   });
 
   it("flags vague properties as weak or vacuous", () => {
@@ -70,5 +70,17 @@ describe("property engine", () => {
     );
 
     expect(["Weak", "Vacuous"]).toContain(reviewed.skepticStatus);
+  });
+
+  it("links assumptions to generated properties", () => {
+    const claims = suggestClaimsFromProtocolMap(protocolMap).map((claim) =>
+      claim.id === "claim_deposit_shares" ? { ...claim, status: "Human-approved" as const } : claim
+    );
+    const properties = generatePropertiesFromClaims(claims, protocolMap);
+    const assumptions = linkAssumptionsToProperties(suggestTokenAssumptions(protocolMap), properties);
+
+    expect(assumptions.find((assumption) => assumption.id === "assumption_no_fee_on_transfer")?.relatedProperties).toContain(
+      "property_deposit_mint_consistency"
+    );
   });
 });
