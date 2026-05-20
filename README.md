@@ -1,38 +1,82 @@
 # ProofBoard
 
-ProofBoard is a protocol assurance workspace for smart contracts.
+ProofBoard is a web-based protocol assurance workspace for smart contract teams. It turns protocol intent into reviewed claims, candidate invariants, Foundry harness scaffolds, verification evidence, and visible assumption debt.
 
-It helps teams turn protocol intent into executable invariants, verification evidence, and assumption debt.
+ProofBoard follows the formal verification direction that AI should help defenders specify, verify, and protect high-value secure cores, rather than merely generate more code or longer bug lists.
 
-## Why This Exists
-
-ProofBoard follows the formal verification direction that AI should help defenders specify, verify, and protect high-value secure cores, not merely generate more code or longer bug lists.
-
-ProofBoard does not claim a protocol is safe. It shows:
-
-- what the protocol appears to rely on
-- which claims humans approved
-- which properties have tests
-- which properties were fuzzed
-- which properties failed
-- which assumptions remain unresolved
-- which parts of the protocol are still outside the secure core
-
-Core principle:
+Core operating principle:
 
 > AI proposes. Humans approve. Tools produce evidence.
 
-## MVP Focus
+ProofBoard is not an AI auditor, vulnerability scanner, formal proof engine, or safety guarantee. It is designed to make the evidence trail reviewable: what was inferred, what a human approved, what was generated, what was tested, and what remains unresolved.
 
-The first MVP focuses on ERC4626-style vault assurance:
+## Product Focus
 
-- protocol map
-- intent board
-- invariant board
-- assumption debt board
-- verification ledger
-- Foundry invariant harness export
-- audit packet export
+The current MVP targets ERC4626 and vault-like protocols. The goal is to help teams define and test the secure core before broader audit or verification work.
+
+In scope:
+
+- ERC4626-style vault intake through pasted Solidity and protocol notes.
+- Protocol map generation for contracts, inheritance, public/external functions, state, events, modifiers, roles, privileged flows, external calls, token dependencies, and vault asset flows.
+- Intent review board with template-based claim suggestions, source evidence, confidence metadata, edit/reject/approve workflows, and an explicit human approval gate.
+- ERC4626 property engine for share accounting, deposit/mint consistency, withdraw/redeem consistency, total assets versus supply, donation/inflation risk, rounding behavior, access control, pause behavior, fee behavior, and token assumptions.
+- Skeptic checks that flag weak, vague, vacuous, under-exercised, or assumption-heavy properties before teams over-trust generated tests.
+- Assumption Debt Board with status, severity, linked functions, linked properties, accepted-risk visibility, and out-of-scope visibility.
+- Verification Ledger that separates claim status, property status, verification level, evidence, assumptions, risk, and next action.
+- Foundry invariant harness generator with invariant test, handler, actor model, standard token mock, fee-on-transfer token mock, rebasing token mock, setup instructions, suggested `forge test` command, code viewer, and downloadable bundle.
+- No-LLM template mode as a first-class path.
+
+Out of scope for the MVP:
+
+- Claims that a protocol is safe or vulnerability-free.
+- Hosted sandbox execution.
+- Automatic formal proof generation.
+- Full arbitrary DeFi coverage beyond ERC4626 and vault-like secure cores.
+- Mandatory paid LLM API or mandatory GitHub App integration.
+
+## Current Implementation Metrics
+
+- 5 npm workspaces: web, shared types, analyzer, property engine, harness generator.
+- 9 workspace boards in the web app: Project, Protocol Map, Intent Board, Invariant Board, Assumption Debt, Ledger, Harness, Results, Export.
+- 10 verification levels modeled, with 8 MVP ledger levels surfaced.
+- 8 assumption statuses and 6 skeptic statuses modeled.
+- 7 generated Foundry harness artifacts under `test/invariants/...`.
+- 19 automated tests passing across web and package workspaces.
+- Validation gates passing: lint, typecheck, test, and production build.
+
+## Feature Map
+
+### Workspace UI
+
+The web app in `apps/web` is the main ProofBoard surface. It provides project intake, demo workspace loading, board navigation, editable protocol notes, Solidity paste input, and board-specific review workflows.
+
+### Shared Data Model
+
+`packages/shared-types` defines the structured workspace model for sources, protocol maps, contracts, functions, state variables, events, modifiers, external calls, claims, properties, assumptions, verification runs, evidence, and audit packets.
+
+### Protocol Analyzer
+
+`packages/analyzer` provides deterministic Solidity source analysis for the MVP. It is intentionally approximate and surfaces parser warnings instead of hiding limitations.
+
+### Property Engine
+
+`packages/property-engine` generates template-based ERC4626 claims, properties, token assumptions, property-to-assumption links, and skeptic review findings. Generated claims and properties never become approved or proven automatically.
+
+### Harness Generator
+
+`packages/harness-generator` emits Foundry scaffold code organized like:
+
+```text
+test/invariants/ProofboardVaultInvariant.t.sol
+test/invariants/handlers/VaultHandler.sol
+test/invariants/actors/VaultActors.sol
+test/invariants/mocks/MockERC20.sol
+test/invariants/mocks/FeeOnTransferToken.sol
+test/invariants/mocks/RebasingToken.sol
+test/invariants/README.md
+```
+
+Generated harnesses are traceable to selected ProofBoard property ids. They are scaffold code, not proof of safety; teams must wire constructors, handlers, actor roles, and protocol-specific assertions before treating Foundry output as verification evidence.
 
 ## Repository Layout
 
@@ -41,7 +85,7 @@ apps/web/                    Web workspace UI
 packages/analyzer/           Solidity and project analysis
 packages/property-engine/    ERC4626 property and assumption templates
 packages/harness-generator/  Foundry invariant harness generation
-packages/result-parser/      Foundry output parsing
+packages/result-parser/      Foundry output parsing and ledger updates
 packages/shared-types/       Shared schemas and types
 examples/erc4626-vault/      Demo vault fixture area
 docs/                        Architecture and product docs
@@ -62,7 +106,7 @@ Run the web app:
 npm run dev
 ```
 
-Validation:
+Run validation:
 
 ```bash
 npm run lint
@@ -71,6 +115,14 @@ npm test
 npm run build
 ```
 
-## Status
+Run a package-specific test:
 
-Phase 0 tooling is configured and Phase 1 contains a static workspace MVP with demo ERC4626 data, project intake, board navigation, and placeholder surfaces for the full assurance workflow.
+```bash
+npm --workspace @proofboard/harness-generator run test
+```
+
+## Evidence Boundaries
+
+ProofBoard uses evidence labels instead of vague confidence claims. Human-approved intent, generated tests, fuzz pass/fail output, weak or vacuous checks, accepted assumptions, and out-of-scope areas remain separate in the UI and data model.
+
+The product should help teams prepare stronger verification work and audits, not replace expert review.

@@ -58,12 +58,14 @@ Eval:
 - Do not change public contracts, schemas, or exported data formats without updating tests and docs.
 - Prefer structured schemas for workspace, contract, claim, property, assumption, and verification-run data.
 - Do not introduce new dependencies without approval.
+- Update `README.md` after major phase or feature implementations, keeping it feature-oriented and professional instead of phase-log oriented.
 
 ## Validation Gates
 Before completion:
 - Run targeted tests for changed behavior.
 - Run `npm run lint`, `npm run typecheck`, and `npm run build` for web changes.
 - For documentation-only changes, inspect changed files and report that automated gates are not configured.
+- Confirm `README.md` reflects major completed feature work when implementation scope changes.
 - Update `task.md` and `progress.md` with commands run, results, risks, and next step.
 
 ## Permissions
