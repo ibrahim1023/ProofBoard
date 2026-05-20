@@ -397,8 +397,16 @@ export function ProofboardWorkspace() {
                     <div className="status-stack">
                       <StatusPill label={property.status} />
                       <StatusPill label={property.verificationLevel} />
+                      <StatusPill label={property.skepticStatus} />
                     </div>
-                    <p>{property.text}</p>
+                    <div className="property-copy">
+                      <p>{property.text}</p>
+                      <ul className="finding-list">
+                        {property.skepticFindings.map((finding) => (
+                          <li key={finding}>{finding}</li>
+                        ))}
+                      </ul>
+                    </div>
                     <strong>Next: {property.nextAction}</strong>
                   </article>
                 ))

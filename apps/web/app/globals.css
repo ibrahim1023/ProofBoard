@@ -359,6 +359,19 @@ textarea {
   grid-template-columns: 160px minmax(0, 1fr) minmax(180px, 0.45fr);
 }
 
+.property-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.finding-list {
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .ledger-table {
   border: 1px solid var(--line);
   overflow-x: auto;
