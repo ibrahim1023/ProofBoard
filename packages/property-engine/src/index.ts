@@ -4,6 +4,7 @@ import type {
   ProtocolFunction,
   ProtocolMap,
   Property,
+  SkepticStatus,
   Severity
 } from "@proofboard/shared-types";
 
@@ -101,7 +102,58 @@ export function suggestClaimsFromProtocolMap(map: ProtocolMap): Claim[] {
 export function generatePropertiesFromClaims(claims: Claim[], map: ProtocolMap): Property[] {
   return claims
     .filter((claim) => claim.status === "Human-approved" || claim.status === "Edited")
-    .flatMap((claim) => propertyTemplatesForClaim(claim, map));
+    .flatMap((claim) => propertyTemplatesForClaim(claim, map))
+    .map((property) => applySkepticReview(property, map));
+}
+
+export function applySkepticReview(property: Property, map: ProtocolMap): Property {
+  const findings: string[] = [];
+  let status: SkepticStatus = "Acceptable";
+  const normalized = property.text.toLowerCase();
+
+  if (property.text.trim().length < 80 || !normalized.includes("should")) {
+    status = "Weak";
+    findings.push("Property is short or underspecified; strengthen it with concrete accounting conditions.");
+  }
+
+  if (normalized.includes("consistent") && !normalized.includes("rounding") && !normalized.includes("exchange rate")) {
+    status = "Weak";
+    findings.push("Consistency property needs explicit exchange-rate or rounding bounds to avoid vague passing checks.");
+  }
+
+  if (property.assumptions.some((assumption) => assumption.includes("fee") || assumption.includes("rebase"))) {
+    status = strongerStatus(status, "Needs adversarial mock");
+    findings.push("Property depends on token behavior assumptions; add fee-on-transfer or rebasing mocks before treating evidence as strong.");
+  }
+
+  if (normalized.includes("multi-actor") || normalized.includes("attacker") || normalized.includes("victim")) {
+    findings.push("Property needs an actor model that exercises adversarial sequencing.");
+  }
+
+  if (normalized.includes("owner") || normalized.includes("admin") || normalized.includes("privileged")) {
+    status = strongerStatus(status, "Needs human review");
+    findings.push("Privileged-flow property needs human review of documented emergency and strategy permissions.");
+  }
+
+  if (property.assumptions.length === 0 && map.tokenDependencies.length > 0) {
+    status = strongerStatus(status, "Vacuous");
+    findings.push("Property has no token assumptions despite token dependencies; it may pass while assuming away vault risk.");
+  }
+
+  if (map.userFlows.length > 1 && !mentionsAny(normalized, map.userFlows.map((fn) => fn.name))) {
+    status = strongerStatus(status, "Needs stronger actor model");
+    findings.push("Property does not reference detected user flows, so a harness could pass without exercising critical paths.");
+  }
+
+  if (findings.length === 0) {
+    findings.push("Property is specific enough for a draft invariant; still requires generated harness evidence.");
+  }
+
+  return {
+    ...property,
+    skepticStatus: status,
+    skepticFindings: findings
+  };
 }
 
 export function suggestTokenAssumptions(map: ProtocolMap): Assumption[] {
@@ -144,6 +196,8 @@ function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
   const base = {
     claimId: claim.id,
     evidence: [],
+    skepticStatus: "Needs human review" as const,
+    skepticFindings: ["Generated draft requires human review before harness evidence is trusted."],
     verificationLevel: "human_approved" as const
   };
   const normalizedTitle = claim.title.toLowerCase();
@@ -261,4 +315,21 @@ function isErc4626Like(map: ProtocolMap) {
     map.contracts.some((contract) => contract.inherits.some((item) => item.includes("ERC4626"))) ||
     hasAnyFunction(map.userFlows, ["deposit", "mint", "withdraw", "redeem"])
   );
+}
+
+function mentionsAny(text: string, terms: string[]) {
+  return terms.some((term) => text.includes(term.toLowerCase()));
+}
+
+function strongerStatus(current: SkepticStatus, next: SkepticStatus): SkepticStatus {
+  const rank: Record<SkepticStatus, number> = {
+    Acceptable: 0,
+    "Needs human review": 1,
+    Weak: 2,
+    "Needs stronger actor model": 3,
+    "Needs adversarial mock": 4,
+    Vacuous: 5
+  };
+
+  return rank[next] > rank[current] ? next : current;
 }

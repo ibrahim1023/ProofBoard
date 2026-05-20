@@ -65,6 +65,16 @@ export const propertyStatuses = [
 ] as const;
 export type PropertyStatus = (typeof propertyStatuses)[number];
 
+export const skepticStatuses = [
+  "Acceptable",
+  "Weak",
+  "Vacuous",
+  "Needs stronger actor model",
+  "Needs adversarial mock",
+  "Needs human review"
+] as const;
+export type SkepticStatus = (typeof skepticStatuses)[number];
+
 export const severityLevels = ["low", "medium", "high", "critical"] as const;
 export type Severity = (typeof severityLevels)[number];
 
@@ -203,6 +213,8 @@ export interface Property {
   claimId: string;
   text: string;
   status: PropertyStatus;
+  skepticStatus: SkepticStatus;
+  skepticFindings: string[];
   verificationLevel: VerificationLevel;
   risk: Severity;
   assumptions: string[];
@@ -288,6 +300,8 @@ export function validateProperty(property: Property, path = "property", issues: 
   requireString(property.id, `${path}.id`, issues);
   requireString(property.claimId, `${path}.claimId`, issues);
   requireEnum(property.status, propertyStatuses, `${path}.status`, issues);
+  requireEnum(property.skepticStatus, skepticStatuses, `${path}.skepticStatus`, issues);
+  requireArray(property.skepticFindings, `${path}.skepticFindings`, issues);
   requireEnum(property.verificationLevel, verificationLevels, `${path}.verificationLevel`, issues);
   requireEnum(property.risk, severityLevels, `${path}.risk`, issues);
   requireArray(property.assumptions, `${path}.assumptions`, issues);

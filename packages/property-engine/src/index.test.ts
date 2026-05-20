@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { analyzeSoliditySource } from "@proofboard/analyzer";
 import {
   generatePropertiesFromClaims,
+  applySkepticReview,
   suggestClaimsFromProtocolMap,
   suggestTokenAssumptions
 } from "./index";
@@ -36,6 +37,8 @@ describe("property engine", () => {
     expect(properties).toHaveLength(1);
     expect(properties[0]?.id).toBe("property_redeemable_assets");
     expect(properties[0]?.status).toBe("Draft");
+    expect(properties[0]?.skepticStatus).toBe("Needs adversarial mock");
+    expect(properties[0]?.skepticFindings.length).toBeGreaterThan(0);
   });
 
   it("suggests token assumptions for vault maps", () => {
@@ -46,5 +49,26 @@ describe("property engine", () => {
       "assumption_no_fee_on_transfer",
       "assumption_no_rebase"
     ]);
+  });
+
+  it("flags vague properties as weak or vacuous", () => {
+    const reviewed = applySkepticReview(
+      {
+        id: "property_vague",
+        claimId: "claim_vague",
+        text: "Things should be consistent.",
+        status: "Draft",
+        skepticStatus: "Needs human review",
+        skepticFindings: [],
+        verificationLevel: "human_approved",
+        risk: "medium",
+        assumptions: [],
+        evidence: [],
+        nextAction: "Review property."
+      },
+      protocolMap
+    );
+
+    expect(["Weak", "Vacuous"]).toContain(reviewed.skepticStatus);
   });
 });

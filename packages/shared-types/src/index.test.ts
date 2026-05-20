@@ -49,6 +49,8 @@ const validWorkspace: Workspace = {
       claimId: "claim_1",
       text: "Redeemable assets remain consistent with share balances.",
       status: "Draft",
+      skepticStatus: "Needs human review",
+      skepticFindings: ["No harness has exercised this property yet."],
       verificationLevel: "human_approved",
       risk: "critical",
       assumptions: ["assumption_1"],
@@ -114,6 +116,15 @@ describe("shared schema validation", () => {
     });
 
     expect(issues[0]?.path).toBe("property.status");
+  });
+
+  it("rejects invalid skeptic statuses", () => {
+    const issues = validateProperty({
+      ...validWorkspace.properties[0],
+      skepticStatus: "Looks fine" as never
+    });
+
+    expect(issues[0]?.path).toBe("property.skepticStatus");
   });
 
   it("rejects invalid assumption statuses", () => {
