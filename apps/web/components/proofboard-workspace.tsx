@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import { analyzeSoliditySource } from "@proofboard/analyzer";
 import {
   generatePropertiesFromClaims,
+  linkAssumptionsToProperties,
   suggestClaimsFromProtocolMap,
   suggestTokenAssumptions
 } from "@proofboard/property-engine";
 import { demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
-import type { Assumption, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
+import type { Assumption, AssumptionStatus, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
 
 const boardItems: Array<{ id: BoardId; label: string }> = [
   { id: "upload", label: "Project" },
@@ -28,9 +29,22 @@ const protocolLabels: Record<ProtocolType, string> = {
   custom_vault: "Custom Vault"
 };
 
+const assumptionFilterOptions = ["All", "Unresolved", "Needs test", "Needs invariant", "Accepted risk", "Out of scope"] as const;
+const assumptionStatusOptions: AssumptionStatus[] = [
+  "Unresolved",
+  "Accepted risk",
+  "Needs test",
+  "Needs invariant",
+  "Needs symbolic check",
+  "Needs formal proof",
+  "Mitigated in code",
+  "Out of scope"
+];
+
 export function ProofboardWorkspace() {
   const [workspace, setWorkspace] = useState<Workspace>(demoWorkspace);
   const [activeBoard, setActiveBoard] = useState<BoardId>("upload");
+  const [assumptionFilter, setAssumptionFilter] = useState<(typeof assumptionFilterOptions)[number]>("All");
   const primarySource = workspace.sources[0];
   const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
 
@@ -46,6 +60,9 @@ export function ProofboardWorkspace() {
         return { property, claim };
       }),
     [workspace.claims, workspace.properties]
+  );
+  const visibleAssumptions = workspace.assumptions.filter((assumption) =>
+    assumptionFilter === "All" ? true : assumption.status === assumptionFilter
   );
 
   function updateField(field: "name" | "description" | "solidity", value: string) {
@@ -96,7 +113,10 @@ export function ProofboardWorkspace() {
     setWorkspace((current) => ({
       ...current,
       claims: mergeClaims(current.claims, suggestClaimsFromProtocolMap(current.protocolMap)),
-      assumptions: mergeAssumptions(current.assumptions, suggestTokenAssumptions(current.protocolMap))
+      assumptions: linkAssumptionsToProperties(
+        mergeAssumptions(current.assumptions, suggestTokenAssumptions(current.protocolMap)),
+        current.properties
+      )
     }));
   }
 
@@ -123,11 +143,23 @@ export function ProofboardWorkspace() {
   }
 
   function generateInvariantProperties() {
+    setWorkspace((current) => {
+      const generated = generatePropertiesFromClaims(current.claims, current.protocolMap);
+      const properties = mergeProperties(current.properties, generated);
+      return {
+        ...current,
+        properties,
+        assumptions: linkAssumptionsToProperties(current.assumptions, properties)
+      };
+    });
+    setActiveBoard("invariants");
+  }
+
+  function updateAssumptionStatus(assumptionId: string, status: AssumptionStatus) {
     setWorkspace((current) => ({
       ...current,
-      properties: mergeProperties(current.properties, generatePropertiesFromClaims(current.claims, current.protocolMap))
+      assumptions: current.assumptions.map((assumption) => (assumption.id === assumptionId ? { ...assumption, status } : assumption))
     }));
-    setActiveBoard("invariants");
   }
 
   return (
@@ -421,11 +453,29 @@ export function ProofboardWorkspace() {
               <p className="eyebrow">First-class risk</p>
               <h3>Assumption Debt Board</h3>
             </div>
+            <div className="action-row">
+              <button className="primary-action" onClick={refreshClaimSuggestions} type="button">
+                Refresh assumptions
+              </button>
+              <label className="compact-label">
+                Filter
+                <select
+                  onChange={(event) => setAssumptionFilter(event.target.value as typeof assumptionFilter)}
+                  value={assumptionFilter}
+                >
+                  {assumptionFilterOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <div className="card-grid">
-              {workspace.assumptions.length === 0 ? (
+              {visibleAssumptions.length === 0 ? (
                 <EmptyState text="No assumptions recorded yet." />
               ) : (
-                workspace.assumptions.map((assumption) => (
+                visibleAssumptions.map((assumption) => (
                   <article className="claim-card" key={assumption.id}>
                     <div className="card-title-row">
                       <strong>{assumption.text}</strong>
@@ -433,6 +483,21 @@ export function ProofboardWorkspace() {
                     </div>
                     <p>{assumption.whyItMatters}</p>
                     <span>Severity: {assumption.severity}</span>
+                    <span>Functions: {assumption.relatedFunctions.length > 0 ? assumption.relatedFunctions.join(", ") : "Unlinked"}</span>
+                    <span>Properties: {assumption.relatedProperties.length > 0 ? assumption.relatedProperties.join(", ") : "Unlinked"}</span>
+                    <label className="compact-label">
+                      Status
+                      <select
+                        onChange={(event) => updateAssumptionStatus(assumption.id, event.target.value as AssumptionStatus)}
+                        value={assumption.status}
+                      >
+                        {assumptionStatusOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </article>
                 ))
               )}

@@ -21,4 +21,17 @@ describe("ProofBoard workspace", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Reject" })[0]);
     expect(screen.getByText("Rejected")).toBeInTheDocument();
   });
+
+  it("lets users filter and update assumption debt", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Assumption Debt" }));
+    expect(screen.getByText("Underlying token behaves like a standard ERC20.")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Filter"), { target: { value: "Accepted risk" } });
+    expect(screen.getByText("Admin actions follow the documented emergency policy.")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Out of scope" } });
+    expect(screen.getByText("Out of scope")).toBeInTheDocument();
+  });
 });
