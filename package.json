@@ -18,6 +18,7 @@
     "lint": "npm --workspace @proofboard/web run lint",
     "typecheck": "npm --workspaces --if-present run typecheck",
     "test": "npm --workspaces --if-present run test",
+    "test:e2e": "npm --workspace @proofboard/web run test:e2e",
     "eval": "npm --workspace @proofboard/evals run eval"
   },
   "engines": {

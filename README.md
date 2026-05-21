@@ -47,7 +47,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 - 10 verification levels modeled, with 8 MVP ledger levels surfaced.
 - 8 assumption statuses and 6 skeptic statuses modeled.
 - 7 generated Foundry harness artifacts under `test/invariants/...`.
-- 47 automated tests passing across web, package, and eval workspaces.
+- 53 unit and eval tests plus 4 browser E2E checks passing across web, package, and eval workspaces.
 - Validation gates passing: lint, typecheck, test, and production build.
 
 ## Feature Map
@@ -141,7 +141,7 @@ Run release-blocker evals:
 npm run eval
 ```
 
-Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. The current harness-generator test suite includes a generated Foundry scaffold compile smoke when `forge` is available locally.
+Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. Current coverage includes desktop and mobile Playwright workflows, generated Foundry scaffold compilation, and wired generated-harness execution when `forge` is available locally.
 
 ## Evidence Boundaries
 
