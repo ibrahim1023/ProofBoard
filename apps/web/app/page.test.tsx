@@ -141,4 +141,40 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByRole("button", { name: /generated-foundry-invariants\.json/ })).toBeInTheDocument();
     expect(screen.getByText(/suggested audit focus separately/i)).toBeInTheDocument();
   });
+
+  it("walks a blank ERC4626 workspace from source intake to ledger export", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "New blank workspace" }));
+    fireEvent.change(screen.getByLabelText("Solidity source"), {
+      target: {
+        value: `contract IntakeVault is ERC4626 {
+          function deposit(uint256 assets, address receiver) public returns (uint256 shares) {}
+          function withdraw(uint256 assets, address receiver, address owner) public returns (uint256 shares) {}
+        }`
+      }
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Intent Board" }));
+    expect(screen.getByText("Deposits mint proportional shares")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Approve" })[0]!);
+    fireEvent.click(screen.getByRole("button", { name: "Generate invariants" }));
+    expect(screen.getByText(/deposit and mint flows should produce consistent accounting outcomes/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Harness" }));
+    expect(screen.getAllByText(/property_deposit_mint_consistency/).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Results" }));
+    fireEvent.change(screen.getByLabelText("Raw Foundry output"), {
+      target: { value: "[PASS] invariant_depositMintConsistency() (runs: 256)" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Parse Foundry output" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Ledger" }));
+    expect(screen.getAllByText("fuzzed_passed").length).toBeGreaterThan(0);
+    expect(screen.getByText("Foundry invariant_depositMintConsistency")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    expect(screen.getByRole("button", { name: /proofboard-ledger\.json/ })).toBeInTheDocument();
+  });
 });
