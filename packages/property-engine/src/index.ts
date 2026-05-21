@@ -19,6 +19,43 @@ type ClaimTemplate = {
   when: (map: ProtocolMap) => boolean;
 };
 
+export const claimSuggestionModes = ["template", "local_llm", "hosted_llm"] as const;
+export type ClaimSuggestionMode = (typeof claimSuggestionModes)[number];
+
+export interface ClaimSuggestionBoundary {
+  mode: ClaimSuggestionMode;
+  label: string;
+  needsApiKey: boolean;
+  transport: "deterministic" | "local_adapter" | "hosted_adapter";
+}
+
+export interface LlmClaimValidation {
+  claims: Claim[];
+  issues: string[];
+  refusal?: string;
+}
+
+export const claimSuggestionBoundaries: ClaimSuggestionBoundary[] = [
+  {
+    mode: "template",
+    label: "No-LLM template mode",
+    needsApiKey: false,
+    transport: "deterministic"
+  },
+  {
+    mode: "local_llm",
+    label: "Local LLM adapter boundary",
+    needsApiKey: false,
+    transport: "local_adapter"
+  },
+  {
+    mode: "hosted_llm",
+    label: "Optional hosted LLM adapter boundary",
+    needsApiKey: true,
+    transport: "hosted_adapter"
+  }
+];
+
 const claimTemplates: ClaimTemplate[] = [
   {
     id: "claim_deposit_shares",
@@ -97,6 +134,34 @@ export function suggestClaimsFromProtocolMap(map: ProtocolMap): Claim[] {
       status: "AI-inferred"
     };
   });
+}
+
+export function validateLlmClaimEnvelope(value: unknown, map: ProtocolMap): LlmClaimValidation {
+  if (!isRecord(value)) {
+    return { claims: [], issues: ["LLM response must be a JSON object."] };
+  }
+
+  if (value.status === "insufficient_evidence") {
+    return typeof value.reason === "string" && value.reason.trim().length > 0
+      ? { claims: [], issues: [], refusal: value.reason }
+      : { claims: [], issues: ["Insufficient-evidence responses require a reason."] };
+  }
+
+  if (value.status !== "proposed" || !Array.isArray(value.claims)) {
+    return { claims: [], issues: ["LLM response must use status proposed with a claims array, or status insufficient_evidence."] };
+  }
+
+  const issues: string[] = [];
+  const claims = value.claims.flatMap((candidate, index) => {
+    const claim = claimFromLlmCandidate(candidate, map, `claims.${index}`, issues);
+    return claim ? [claim] : [];
+  });
+
+  if (claims.length === 0 && issues.length === 0) {
+    issues.push("LLM response proposed no reviewable claims.");
+  }
+
+  return { claims, issues };
 }
 
 export function generatePropertiesFromClaims(claims: Claim[], map: ProtocolMap): Property[] {
@@ -258,6 +323,35 @@ export function linkAssumptionsToProperties(assumptions: Assumption[], propertie
   }));
 }
 
+function claimFromLlmCandidate(candidate: unknown, map: ProtocolMap, path: string, issues: string[]): Claim | undefined {
+  if (!isRecord(candidate)) {
+    issues.push(`${path} must be an object.`);
+    return undefined;
+  }
+
+  const title = requiredText(candidate.title, `${path}.title`, issues);
+  const text = requiredText(candidate.text, `${path}.text`, issues);
+  const source = stringList(candidate.source, `${path}.source`, issues);
+  const severity = severityFromValue(candidate.severity, `${path}.severity`, issues);
+  const confidence = confidenceFromValue(candidate.confidence, `${path}.confidence`, issues);
+
+  if (!title || !text || !severity || confidence === undefined || source.length === 0) {
+    return undefined;
+  }
+
+  return {
+    id: `claim_llm_${slug(title)}`,
+    title,
+    text,
+    source,
+    confidence,
+    relatedContracts: stringList(candidate.relatedContracts, `${path}.relatedContracts`, [], map.contracts.map((contract) => contract.name)),
+    relatedFunctions: stringList(candidate.relatedFunctions, `${path}.relatedFunctions`, []),
+    severity,
+    status: "AI-inferred"
+  };
+}
+
 function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
   const base = {
     claimId: claim.id,
@@ -402,4 +496,57 @@ function strongerStatus(current: SkepticStatus, next: SkepticStatus): SkepticSta
   };
 
   return rank[next] > rank[current] ? next : current;
+}
+
+function requiredText(value: unknown, path: string, issues: string[]) {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+
+  issues.push(`${path} must be a non-empty string.`);
+  return undefined;
+}
+
+function stringList(value: unknown, path: string, issues: string[], fallback: string[] = []) {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (Array.isArray(value) && value.every((item) => typeof item === "string" && item.trim().length > 0)) {
+    return value.map((item) => item.trim());
+  }
+
+  issues.push(`${path} must be a string array.`);
+  return [];
+}
+
+function severityFromValue(value: unknown, path: string, issues: string[]): Severity | undefined {
+  if (value === "low" || value === "medium" || value === "high" || value === "critical") {
+    return value;
+  }
+
+  issues.push(`${path} must be low, medium, high, or critical.`);
+  return undefined;
+}
+
+function confidenceFromValue(value: unknown, path: string, issues: string[]) {
+  if (typeof value === "number" && value >= 0 && value <= 1) {
+    return value;
+  }
+
+  issues.push(`${path} must be a number between 0 and 1.`);
+  return undefined;
+}
+
+function slug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 72);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

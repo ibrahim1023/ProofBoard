@@ -183,7 +183,8 @@ button {
 .card-grid,
 .export-grid,
 .analysis-grid,
-.results-grid {
+.results-grid,
+.llm-boundary {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -481,6 +482,10 @@ textarea {
   min-height: 340px;
 }
 
+.boundary-input {
+  min-height: 220px;
+}
+
 .result-notice {
   border-color: #d69e2e;
 }
@@ -520,7 +525,8 @@ textarea {
   .card-grid,
   .export-grid,
   .analysis-grid,
-  .results-grid {
+  .results-grid,
+  .llm-boundary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -545,7 +551,8 @@ textarea {
   .card-grid,
   .export-grid,
   .analysis-grid,
-  .results-grid {
+  .results-grid,
+  .llm-boundary {
     grid-template-columns: 1fr;
   }
 }

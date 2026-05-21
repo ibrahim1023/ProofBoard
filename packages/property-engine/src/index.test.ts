@@ -3,9 +3,11 @@ import { analyzeSoliditySource } from "@proofboard/analyzer";
 import {
   generatePropertiesFromClaims,
   applySkepticReview,
+  claimSuggestionBoundaries,
   linkAssumptionsToProperties,
   suggestClaimsFromProtocolMap,
-  suggestTokenAssumptions
+  suggestTokenAssumptions,
+  validateLlmClaimEnvelope
 } from "./index";
 
 const protocolMap = analyzeSoliditySource({
@@ -82,5 +84,39 @@ describe("property engine", () => {
     expect(assumptions.find((assumption) => assumption.id === "assumption_no_fee_on_transfer")?.relatedProperties).toContain(
       "property_deposit_mint_consistency"
     );
+  });
+
+  it("keeps template, local, and hosted claim boundaries explicit", () => {
+    expect(claimSuggestionBoundaries.map((boundary) => boundary.mode)).toEqual(["template", "local_llm", "hosted_llm"]);
+    expect(claimSuggestionBoundaries.find((boundary) => boundary.mode === "hosted_llm")?.needsApiKey).toBe(true);
+  });
+
+  it("validates LLM claims into human-review suggestions only", () => {
+    const validated = validateLlmClaimEnvelope(
+      {
+        status: "proposed",
+        claims: [
+          {
+            title: "Donation ordering matters",
+            text: "Donation ordering should not unfairly dilute the next depositor.",
+            source: ["deposit flow", "token dependency"],
+            confidence: 0.71,
+            severity: "critical",
+            relatedFunctions: ["deposit"]
+          }
+        ]
+      },
+      protocolMap
+    );
+
+    expect(validated.issues).toEqual([]);
+    expect(validated.claims[0]).toMatchObject({ id: "claim_llm_donation_ordering_matters", status: "AI-inferred" });
+  });
+
+  it("supports insufficient-evidence refusals and rejects invalid payloads", () => {
+    expect(validateLlmClaimEnvelope({ status: "insufficient_evidence", reason: "No source evidence." }, protocolMap).refusal).toBe(
+      "No source evidence."
+    );
+    expect(validateLlmClaimEnvelope({ status: "proposed", claims: [{ title: "Missing fields" }] }, protocolMap).issues.length).toBeGreaterThan(0);
   });
 });

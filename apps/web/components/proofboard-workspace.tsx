@@ -5,10 +5,13 @@ import { analyzeSoliditySource } from "@proofboard/analyzer";
 import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
 import { applyFoundryOutput, parseFoundryOutput } from "@proofboard/result-parser";
 import {
+  claimSuggestionBoundaries,
+  type ClaimSuggestionMode,
   generatePropertiesFromClaims,
   linkAssumptionsToProperties,
   suggestClaimsFromProtocolMap,
-  suggestTokenAssumptions
+  suggestTokenAssumptions,
+  validateLlmClaimEnvelope
 } from "@proofboard/property-engine";
 import { generateAuditExportFiles } from "@/lib/audit-packet";
 import { demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
@@ -49,6 +52,12 @@ export function ProofboardWorkspace() {
   const [activeBoard, setActiveBoard] = useState<BoardId>("upload");
   const [assumptionFilter, setAssumptionFilter] = useState<(typeof assumptionFilterOptions)[number]>("All");
   const [selectedHarnessPath, setSelectedHarnessPath] = useState("test/invariants/ProofboardVaultInvariant.t.sol");
+  const [claimMode, setClaimMode] = useState<ClaimSuggestionMode>("template");
+  const [llmClaimPayload, setLlmClaimPayload] = useState(`{
+  "status": "insufficient_evidence",
+  "reason": "Local or hosted adapter did not return source-backed claims."
+}`);
+  const [llmClaimNotice, setLlmClaimNotice] = useState<string[]>([]);
   const [foundryOutput, setFoundryOutput] = useState(`[PASS] invariant_redeemableAssets() (runs: 256)
 [FAIL. Reason: assertion failed] invariant_pauseBehavior()
 Counterexample: paused vault accepted a deposit
@@ -132,6 +141,22 @@ Sequence: handler.deposit(1 ether, alice)`);
         current.properties
       )
     }));
+  }
+
+  function importStructuredClaims() {
+    try {
+      const validated = validateLlmClaimEnvelope(JSON.parse(llmClaimPayload) as unknown, workspace.protocolMap);
+      setLlmClaimNotice(validated.refusal ? [`Insufficient evidence: ${validated.refusal}`] : validated.issues);
+
+      if (validated.issues.length === 0 && validated.claims.length > 0) {
+        setWorkspace((current) => ({
+          ...current,
+          claims: mergeAdditionalClaims(current.claims, validated.claims)
+        }));
+      }
+    } catch {
+      setLlmClaimNotice(["Structured claim payload must be valid JSON."]);
+    }
   }
 
   function updateClaimStatus(claimId: string, status: Claim["status"]) {
@@ -426,7 +451,50 @@ Sequence: handler.deposit(1 ether, alice)`);
               <button className="secondary-action" onClick={generateInvariantProperties} type="button">
                 Generate invariants
               </button>
+              <label className="compact-label">
+                Claim mode
+                <select onChange={(event) => setClaimMode(event.target.value as ClaimSuggestionMode)} value={claimMode}>
+                  {claimSuggestionBoundaries.map((boundary) => (
+                    <option key={boundary.mode} value={boundary.mode}>
+                      {boundary.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
+            {claimMode !== "template" && (
+              <div className="llm-boundary">
+                <label>
+                  Structured claim payload
+                  <textarea
+                    className="code-input boundary-input"
+                    onChange={(event) => setLlmClaimPayload(event.target.value)}
+                    spellCheck={false}
+                    value={llmClaimPayload}
+                  />
+                </label>
+                <div className="stack">
+                  <div className="action-row">
+                    <button className="primary-action" onClick={importStructuredClaims} type="button">
+                      Validate claim payload
+                    </button>
+                    <StatusPill label={claimMode === "hosted_llm" ? "optional hosted boundary" : "local adapter boundary"} />
+                  </div>
+                  <div className="compact-card">
+                    <strong>Review gate</strong>
+                    <span>Imported claims enter the board as AI-inferred and require human approval.</span>
+                  </div>
+                  {llmClaimNotice.length > 0 && (
+                    <div className="compact-card result-notice" role="status">
+                      <strong>Claim payload notes</strong>
+                      {llmClaimNotice.map((notice) => (
+                        <span key={notice}>{notice}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="card-grid">
               {workspace.claims.length === 0 ? (
                 <EmptyState text="No claims yet. ProofBoard will propose claims, but humans approve intent." />
@@ -780,6 +848,12 @@ function EmptyState({ text }: { text: string }) {
 function mergeClaims(existing: Claim[], suggested: Claim[]) {
   const existingById = new Map(existing.map((claim) => [claim.id, claim]));
   return suggested.map((claim) => existingById.get(claim.id) ?? claim);
+}
+
+function mergeAdditionalClaims(existing: Claim[], suggested: Claim[]) {
+  const existingById = new Map(existing.map((claim) => [claim.id, claim]));
+  suggested.forEach((claim) => existingById.set(claim.id, existingById.get(claim.id) ?? claim));
+  return [...existingById.values()];
 }
 
 function mergeProperties(existing: Property[], generated: Property[]) {

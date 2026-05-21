@@ -22,6 +22,44 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByText("Rejected")).toBeInTheDocument();
   });
 
+  it("validates local LLM claim payloads before review", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Intent Board" }));
+    fireEvent.change(screen.getByLabelText("Claim mode"), { target: { value: "local_llm" } });
+    fireEvent.change(screen.getByLabelText("Structured claim payload"), {
+      target: {
+        value: JSON.stringify({
+          status: "proposed",
+          claims: [
+            {
+              title: "Adapters preserve user claims",
+              text: "Adapter output should stay source-backed until a reviewer approves intent.",
+              source: ["local adapter"],
+              confidence: 0.64,
+              severity: "medium"
+            }
+          ]
+        })
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Validate claim payload" }));
+
+    expect(screen.getByText("Adapters preserve user claims")).toBeInTheDocument();
+    expect(screen.getAllByText("AI-inferred").length).toBeGreaterThan(0);
+  });
+
+  it("reports insufficient LLM evidence without adding claims", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Intent Board" }));
+    fireEvent.change(screen.getByLabelText("Claim mode"), { target: { value: "hosted_llm" } });
+    fireEvent.click(screen.getByRole("button", { name: "Validate claim payload" }));
+
+    expect(screen.getByText("Claim payload notes")).toBeInTheDocument();
+    expect(screen.getByText(/Insufficient evidence:/)).toBeInTheDocument();
+  });
+
   it("lets users filter and update assumption debt", () => {
     render(<Home />);
 
