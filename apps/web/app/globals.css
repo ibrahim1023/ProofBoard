@@ -182,7 +182,8 @@ button {
 .form-grid,
 .card-grid,
 .export-grid,
-.analysis-grid {
+.analysis-grid,
+.results-grid {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -465,6 +466,14 @@ textarea {
   font-size: 0.84rem;
 }
 
+.results-input {
+  min-height: 340px;
+}
+
+.result-notice {
+  border-color: #d69e2e;
+}
+
 .setup-list span {
   border-left: 3px solid var(--accent);
   padding: 8px 10px;
@@ -499,7 +508,8 @@ textarea {
   .form-grid,
   .card-grid,
   .export-grid,
-  .analysis-grid {
+  .analysis-grid,
+  .results-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -523,7 +533,8 @@ textarea {
   .form-grid,
   .card-grid,
   .export-grid,
-  .analysis-grid {
+  .analysis-grid,
+  .results-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -14,6 +14,7 @@
     "@proofboard/analyzer": "0.1.0",
     "@proofboard/harness-generator": "0.1.0",
     "@proofboard/property-engine": "0.1.0",
+    "@proofboard/result-parser": "0.1.0",
     "@proofboard/shared-types": "0.1.0",
     "next": "^16.0.0",
     "react": "^19.0.0",

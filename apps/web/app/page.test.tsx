@@ -57,4 +57,30 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByText("test/invariants/mocks/FeeOnTransferToken.sol")).toBeInTheDocument();
     expect(screen.getByText("ProofBoard property: property_redeemable_assets", { exact: false })).toBeInTheDocument();
   });
+
+  it("parses Foundry output into ledger evidence", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Results" }));
+    fireEvent.change(screen.getByLabelText("Raw Foundry output"), {
+      target: { value: "[PASS] invariant_redeemableAssets() (runs: 256)" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Parse Foundry output" }));
+    expect(screen.getByText("passed")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ledger" }));
+    expect(screen.getAllByText("fuzzed_passed").length).toBeGreaterThan(0);
+    expect(screen.getByText("human-approved claim, Foundry invariant_redeemableAssets")).toBeInTheDocument();
+  });
+
+  it("reports Foundry parser failures clearly", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Results" }));
+    fireEvent.change(screen.getByLabelText("Raw Foundry output"), { target: { value: "build complete" } });
+    fireEvent.click(screen.getByRole("button", { name: "Parse Foundry output" }));
+
+    expect(screen.getByText("Parser notes")).toBeInTheDocument();
+    expect(screen.getByText("No invariant pass or fail results were found in the Foundry output.")).toBeInTheDocument();
+  });
 });

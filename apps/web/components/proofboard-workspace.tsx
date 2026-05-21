@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { analyzeSoliditySource } from "@proofboard/analyzer";
 import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
+import { applyFoundryOutput, parseFoundryOutput } from "@proofboard/result-parser";
 import {
   generatePropertiesFromClaims,
   linkAssumptionsToProperties,
@@ -47,6 +48,11 @@ export function ProofboardWorkspace() {
   const [activeBoard, setActiveBoard] = useState<BoardId>("upload");
   const [assumptionFilter, setAssumptionFilter] = useState<(typeof assumptionFilterOptions)[number]>("All");
   const [selectedHarnessPath, setSelectedHarnessPath] = useState("test/invariants/ProofboardVaultInvariant.t.sol");
+  const [foundryOutput, setFoundryOutput] = useState(`[PASS] invariant_redeemableAssets() (runs: 256)
+[FAIL. Reason: assertion failed] invariant_pauseBehavior()
+Counterexample: paused vault accepted a deposit
+Sequence: handler.deposit(1 ether, alice)`);
+  const [resultNotice, setResultNotice] = useState<string[]>([]);
   const primarySource = workspace.sources[0];
   const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
 
@@ -177,6 +183,21 @@ export function ProofboardWorkspace() {
     link.download = "generated-foundry-invariants.json";
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  function parseResults() {
+    const parsed = parseFoundryOutput(foundryOutput, workspace.properties);
+    setResultNotice([...parsed.errors, ...parsed.warnings]);
+    setWorkspace((current) => applyFoundryOutput(current, foundryOutput));
+  }
+
+  async function uploadFoundryOutput(file?: File) {
+    if (!file) {
+      return;
+    }
+
+    setFoundryOutput(await file.text());
+    setResultNotice([]);
   }
 
   return (
@@ -620,11 +641,52 @@ export function ProofboardWorkspace() {
         )}
 
         {activeBoard === "results" && (
-          <CodePreview
-            eyebrow="Manual verification input"
-            title="Foundry Results"
-            code={`[PASS] invariant_redeemableAssetsRespectShares()\n[FAIL] invariant_donationDoesNotInflateShares()\nCounterexample: attacker donates before first depositor`}
-          />
+          <section className="section-block wide">
+            <div className="section-heading">
+              <p className="eyebrow">Manual verification input</p>
+              <h3>Foundry Results</h3>
+            </div>
+            <div className="results-grid">
+              <label>
+                Raw Foundry output
+                <textarea
+                  className="code-input results-input"
+                  onChange={(event) => setFoundryOutput(event.target.value)}
+                  spellCheck={false}
+                  value={foundryOutput}
+                />
+              </label>
+              <div className="stack">
+                <div className="action-row">
+                  <button className="primary-action" onClick={parseResults} type="button">
+                    Parse Foundry output
+                  </button>
+                  <label className="file-control">
+                    <input
+                      accept=".log,.txt"
+                      onChange={(event) => void uploadFoundryOutput(event.target.files?.[0])}
+                      type="file"
+                    />
+                    Upload output
+                  </label>
+                </div>
+                <div className="compact-card">
+                  <strong>Parsed runs</strong>
+                  <span>{workspace.verificationRuns.length} preserved verification run records</span>
+                  <span>{workspace.verificationRuns.at(-1)?.status ?? "No parsed run yet"}</span>
+                  <span>{workspace.verificationRuns.at(-1)?.counterexamples[0] ?? "Counterexamples remain attached when Foundry reports them."}</span>
+                </div>
+                {resultNotice.length > 0 && (
+                  <div className="compact-card result-notice" role="status">
+                    <strong>Parser notes</strong>
+                    {resultNotice.map((notice) => (
+                      <span key={notice}>{notice}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
         )}
 
         {activeBoard === "export" && (
@@ -697,18 +759,6 @@ function StatusPill({ label }: { label: string }) {
 
 function EmptyState({ text }: { text: string }) {
   return <p className="empty-state">{text}</p>;
-}
-
-function CodePreview({ eyebrow, title, code }: { eyebrow: string; title: string; code: string }) {
-  return (
-    <section className="section-block wide">
-      <div className="section-heading">
-        <p className="eyebrow">{eyebrow}</p>
-        <h3>{title}</h3>
-      </div>
-      <pre className="code-preview">{code}</pre>
-    </section>
-  );
 }
 
 function mergeClaims(existing: Claim[], suggested: Claim[]) {
