@@ -45,7 +45,7 @@ Out of scope for the MVP:
 - 10 verification levels modeled, with 8 MVP ledger levels surfaced.
 - 8 assumption statuses and 6 skeptic statuses modeled.
 - 7 generated Foundry harness artifacts under `test/invariants/...`.
-- 40 automated tests passing across web, package, and eval workspaces.
+- 47 automated tests passing across web, package, and eval workspaces.
 - Validation gates passing: lint, typecheck, test, and production build.
 
 ## Feature Map
@@ -138,6 +138,8 @@ Run release-blocker evals:
 ```bash
 npm run eval
 ```
+
+Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. The current harness-generator test suite includes a generated Foundry scaffold compile smoke when `forge` is available locally.
 
 ## Evidence Boundaries
 
