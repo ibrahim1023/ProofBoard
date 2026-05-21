@@ -8,7 +8,8 @@
     "packages/shared-types",
     "packages/analyzer",
     "packages/property-engine",
-    "packages/harness-generator"
+    "packages/harness-generator",
+    "packages/result-parser"
   ],
   "scripts": {
     "dev": "npm --workspace @proofboard/web run dev",
