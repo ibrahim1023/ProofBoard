@@ -135,4 +135,30 @@ describe("shared schema validation", () => {
 
     expect(issues[0]?.path).toBe("assumption.status");
   });
+
+  it("rejects broken workspace claim, assumption, property, and evidence links", () => {
+    const issues = validateWorkspace({
+      ...validWorkspace,
+      properties: [
+        {
+          ...validWorkspace.properties[0],
+          claimId: "claim_missing",
+          assumptions: ["assumption_missing"],
+          evidence: ["evidence_missing"]
+        }
+      ],
+      assumptions: [{ ...validWorkspace.assumptions[0], relatedProperties: ["property_missing"] }],
+      evidence: [{ ...validWorkspace.evidence[0], propertyId: "property_missing" }]
+    });
+
+    expect(issues.map((issue) => issue.path)).toEqual(
+      expect.arrayContaining([
+        "properties.0.claimId",
+        "properties.0.assumptions.0",
+        "properties.0.evidence.0",
+        "assumptions.0.relatedProperties.0",
+        "evidence.0.propertyId"
+      ])
+    );
+  });
 });

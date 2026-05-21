@@ -1,3 +1,7 @@
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Workspace } from "@proofboard/shared-types";
 import { generateFoundryHarnessBundle } from "./index";
@@ -76,4 +80,52 @@ describe("generateFoundryHarnessBundle", () => {
     expect(invariant?.content).toContain("ProofBoard property: property_share_accounting");
     expect(invariant?.content).toContain("not proof of safety");
   });
+
+  it.runIf(forgeAvailable())("compiles generated scaffold contracts in a Foundry fixture", () => {
+    const root = mkdtempSync(join(tmpdir(), "proofboard-harness-"));
+    const compileWorkspace = {
+      ...workspace,
+      protocolMap: {
+        ...workspace.protocolMap,
+        contracts: [{ ...workspace.protocolMap.contracts[0]!, name: "FixtureVault", path: "src/FixtureVault.sol" }]
+      }
+    } satisfies Workspace;
+
+    try {
+      write(root, "foundry.toml", `[profile.default]\nsrc = "src"\ntest = "test"\nlibs = ["lib"]\n`);
+      write(root, "src/FixtureVault.sol", `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract FixtureVault {}`);
+      write(
+        root,
+        "lib/forge-std/src/Test.sol",
+        `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract Test { function targetContract(address) internal {} }`
+      );
+
+      generateFoundryHarnessBundle(compileWorkspace).files.forEach((file) => write(root, file.path, file.content));
+
+      const output = execFileSync("forge", ["build"], {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+
+      expect(output).toContain("Compiling");
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
 });
+
+function forgeAvailable() {
+  try {
+    execFileSync("forge", ["--version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function write(root: string, path: string, content: string) {
+  const file = join(root, path);
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, content);
+}

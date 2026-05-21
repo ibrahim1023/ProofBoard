@@ -86,4 +86,19 @@ Warning: No calls made to target contract for selector deposit`,
     expect(next.properties[0]).toMatchObject({ status: "Weak or vacuous", verificationLevel: "weak_or_vacuous" });
     expect(next.evidence[0]?.strength).toBe("weak");
   });
+
+  it("reports empty output before it can become evidence", () => {
+    const parsed = parseFoundryOutput("", workspace.properties);
+
+    expect(parsed.errors).toEqual(["Paste Foundry output before parsing."]);
+    expect(parsed.runStatus).toBe("errored");
+  });
+
+  it("preserves unlinked invariant runs without mutating ledger properties", () => {
+    const next = applyFoundryOutput(workspace, "[PASS] invariant_unknownAccounting()", "2026-05-21T01:00:00Z");
+
+    expect(next.verificationRuns[0]).toMatchObject({ status: "passed", rawOutput: "[PASS] invariant_unknownAccounting()" });
+    expect(next.properties.map((property) => property.verificationLevel)).toEqual(["test_generated", "test_generated"]);
+    expect(next.evidence).toEqual([]);
+  });
 });

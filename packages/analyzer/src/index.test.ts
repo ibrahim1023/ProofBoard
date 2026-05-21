@@ -51,4 +51,24 @@ describe("analyzeSoliditySource", () => {
     expect(map.contracts).toEqual([]);
     expect(map.parserWarnings).toContain("No contracts were detected in the supplied Solidity source.");
   });
+
+  it("reports unsupported sources instead of analyzing them as Solidity", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      language: "markdown"
+    });
+
+    expect(map.contracts).toEqual([]);
+    expect(map.parserWarnings).toEqual(["Unsupported source language: markdown."]);
+  });
+
+  it("warns when an incomplete contract body cannot be closed", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      content: "contract BrokenVault is ERC4626 { function deposit(uint256 assets, address receiver) public {"
+    });
+
+    expect(map.contracts).toEqual([]);
+    expect(map.parserWarnings).toContain("Could not find closing brace for contract BrokenVault.");
+  });
 });

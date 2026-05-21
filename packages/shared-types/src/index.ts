@@ -281,6 +281,7 @@ export function validateWorkspace(workspace: Workspace): ValidationIssue[] {
   workspace.assumptions.forEach((assumption, index) => validateAssumption(assumption, `assumptions.${index}`, issues));
   workspace.verificationRuns.forEach((run, index) => validateVerificationRun(run, `verificationRuns.${index}`, issues));
   workspace.evidence.forEach((evidence, index) => validateEvidence(evidence, `evidence.${index}`, issues));
+  validateWorkspaceLinks(workspace, issues);
 
   return issues;
 }
@@ -330,6 +331,33 @@ export function validateEvidence(evidence: Evidence, path = "evidence", issues: 
   return issues;
 }
 
+function validateWorkspaceLinks(workspace: Workspace, issues: ValidationIssue[]) {
+  const claimIds = new Set(workspace.claims.map((claim) => claim.id));
+  const propertyIds = new Set(workspace.properties.map((property) => property.id));
+  const assumptionIds = new Set(workspace.assumptions.map((assumption) => assumption.id));
+  const evidenceIds = new Set(workspace.evidence.map((evidence) => evidence.id));
+
+  workspace.properties.forEach((property, propertyIndex) => {
+    requireLink(claimIds, property.claimId, `properties.${propertyIndex}.claimId`, "claim", issues);
+    property.assumptions.forEach((assumptionId, assumptionIndex) =>
+      requireLink(assumptionIds, assumptionId, `properties.${propertyIndex}.assumptions.${assumptionIndex}`, "assumption", issues)
+    );
+    property.evidence.forEach((evidenceId, evidenceIndex) =>
+      requireLink(evidenceIds, evidenceId, `properties.${propertyIndex}.evidence.${evidenceIndex}`, "evidence", issues)
+    );
+  });
+
+  workspace.assumptions.forEach((assumption, assumptionIndex) => {
+    assumption.relatedProperties.forEach((propertyId, propertyIndex) =>
+      requireLink(propertyIds, propertyId, `assumptions.${assumptionIndex}.relatedProperties.${propertyIndex}`, "property", issues)
+    );
+  });
+
+  workspace.evidence.forEach((evidence, evidenceIndex) => {
+    requireLink(propertyIds, evidence.propertyId, `evidence.${evidenceIndex}.propertyId`, "property", issues);
+  });
+}
+
 function requireString(value: string, path: string, issues: ValidationIssue[]) {
   if (typeof value !== "string" || value.trim().length === 0) {
     issues.push({ path, message: "Expected a non-empty string." });
@@ -345,5 +373,11 @@ function requireArray(value: unknown[], path: string, issues: ValidationIssue[])
 function requireEnum<T extends string>(value: string, allowed: readonly T[], path: string, issues: ValidationIssue[]) {
   if (!allowed.includes(value as T)) {
     issues.push({ path, message: `Expected one of: ${allowed.join(", ")}.` });
+  }
+}
+
+function requireLink(ids: Set<string>, id: string, path: string, kind: string, issues: ValidationIssue[]) {
+  if (!ids.has(id)) {
+    issues.push({ path, message: `Unknown ${kind} link: ${id}.` });
   }
 }
