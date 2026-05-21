@@ -14,7 +14,7 @@ import {
   validateLlmClaimEnvelope
 } from "@proofboard/property-engine";
 import { generateAuditExportFiles } from "@/lib/audit-packet";
-import { demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
+import { completedDemoWorkspace, demoFoundryOutput, demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
 import type { Assumption, AssumptionStatus, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
 
 const boardItems: Array<{ id: BoardId; label: string }> = [
@@ -58,10 +58,7 @@ export function ProofboardWorkspace() {
   "reason": "Local or hosted adapter did not return source-backed claims."
 }`);
   const [llmClaimNotice, setLlmClaimNotice] = useState<string[]>([]);
-  const [foundryOutput, setFoundryOutput] = useState(`[PASS] invariant_redeemableAssets() (runs: 256)
-[FAIL. Reason: assertion failed] invariant_pauseBehavior()
-Counterexample: paused vault accepted a deposit
-Sequence: handler.deposit(1 ether, alice)`);
+  const [foundryOutput, setFoundryOutput] = useState(demoFoundryOutput);
   const [resultNotice, setResultNotice] = useState<string[]>([]);
   const primarySource = workspace.sources[0];
   const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
@@ -130,6 +127,12 @@ Sequence: handler.deposit(1 ether, alice)`);
   function loadDemoWorkspace() {
     setWorkspace(demoWorkspace);
     setActiveBoard("map");
+  }
+
+  function loadCompletedDemoWorkspace() {
+    setWorkspace(completedDemoWorkspace);
+    setFoundryOutput(demoFoundryOutput);
+    setActiveBoard("ledger");
   }
 
   function refreshClaimSuggestions() {
@@ -337,6 +340,9 @@ Sequence: handler.deposit(1 ether, alice)`);
               <div className="action-row">
                 <button className="primary-action" onClick={loadDemoWorkspace} type="button">
                   Load demo vault
+                </button>
+                <button className="secondary-action" onClick={loadCompletedDemoWorkspace} type="button">
+                  Load completed demo
                 </button>
                 <button className="secondary-action" onClick={loadBlankWorkspace} type="button">
                   New blank workspace

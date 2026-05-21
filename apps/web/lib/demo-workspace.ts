@@ -1,4 +1,5 @@
 import { analyzeSoliditySource } from "@proofboard/analyzer";
+import { applyFoundryOutput } from "@proofboard/result-parser";
 import type { Contract, ProtocolFunction, SourceFile, Workspace } from "@proofboard/shared-types";
 
 export const demoSolidity = `// SPDX-License-Identifier: MIT
@@ -37,6 +38,11 @@ contract ExampleVault is ERC4626, Ownable {
         feeRecipient = nextRecipient;
     }
 }`;
+
+export const demoFoundryOutput = `[PASS] invariant_redeemableAssets() (runs: 256)
+[FAIL. Reason: assertion failed] invariant_pauseBehavior()
+Counterexample: paused vault accepted a deposit
+Sequence: handler.deposit(1 ether, alice)`;
 
 const sourceFile: SourceFile = {
   id: "source_example_vault",
@@ -328,6 +334,12 @@ const analyzedProtocolMap = analyzeSoliditySource(sourceFile);
 demoWorkspace.protocolMap = {
   ...analyzedProtocolMap,
   parserWarnings: analyzedProtocolMap.parserWarnings.filter((warning) => !warning.startsWith("Static regex parser"))
+};
+
+export const completedDemoWorkspace: Workspace = {
+  ...applyFoundryOutput(demoWorkspace, demoFoundryOutput, "2026-05-21T00:00:00Z"),
+  id: "workspace_demo_erc4626_completed",
+  name: "ExampleVault Completed Demo"
 };
 
 export const emptyWorkspace: Workspace = {

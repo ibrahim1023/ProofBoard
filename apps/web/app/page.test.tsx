@@ -12,6 +12,16 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByText("Repo zip upload placeholder")).toBeInTheDocument();
   });
 
+  it("loads the completed demo ledger with fuzz evidence", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Load completed demo" }));
+
+    expect(screen.getAllByText("ExampleVault Completed Demo")).toHaveLength(2);
+    expect(screen.getAllByText("fuzzed_failed").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Foundry invariant_pauseBehavior/)).toBeInTheDocument();
+  });
+
   it("keeps generated claims behind human review controls", () => {
     render(<Home />);
 

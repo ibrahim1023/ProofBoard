@@ -1,0 +1,6 @@
+{
+  "approved": ["claim_withdraw_ownership"],
+  "edited": ["claim_pause_blocks_flows"],
+  "rejected": ["claim_admin_no_drain"],
+  "note": "Rejected claims remain visible and do not become approved properties."
+}

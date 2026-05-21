@@ -1,0 +1,20 @@
+[
+  {
+    "propertyId": "property_redeemable_assets",
+    "verificationLevel": "fuzzed_passed",
+    "evidence": "Foundry invariant_redeemableAssets",
+    "remainingAssumptions": ["assumption_standard_erc20", "assumption_no_rebase"]
+  },
+  {
+    "propertyId": "property_pause_behavior",
+    "verificationLevel": "fuzzed_failed",
+    "evidence": "Counterexample from Foundry invariant_pauseBehavior",
+    "remainingAssumptions": ["assumption_admin_policy"]
+  },
+  {
+    "propertyId": "property_deposit_mint_consistency",
+    "verificationLevel": "ai_inferred",
+    "evidence": "None attached",
+    "remainingAssumptions": ["assumption_standard_erc20"]
+  }
+]

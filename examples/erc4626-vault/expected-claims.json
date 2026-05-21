@@ -1,0 +1,17 @@
+[
+  {
+    "id": "claim_withdraw_ownership",
+    "title": "Withdrawals respect share ownership",
+    "expectedStatus": "Human-approved"
+  },
+  {
+    "id": "claim_deposit_shares",
+    "title": "Deposits mint proportional shares",
+    "expectedStatus": "AI-inferred"
+  },
+  {
+    "id": "claim_pause_blocks_flows",
+    "title": "Paused vault blocks asset movement",
+    "expectedStatus": "Edited"
+  }
+]
