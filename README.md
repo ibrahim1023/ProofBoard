@@ -42,13 +42,29 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 ## Current Implementation Metrics
 
-- 7 npm workspaces: web, shared types, analyzer, property engine, harness generator, result parser, evals.
-- 9 workspace boards in the web app: Project, Protocol Map, Intent Board, Invariant Board, Assumption Debt, Ledger, Harness, Results, Export.
-- 10 verification levels modeled, with 8 MVP ledger levels surfaced.
-- 8 assumption statuses and 6 skeptic statuses modeled.
-- 7 generated Foundry harness artifacts under `test/invariants/...`.
-- 53 unit and eval tests plus 4 browser E2E checks passing across web, package, and eval workspaces.
-- Validation gates passing: lint, typecheck, test, and production build.
+### Product Surface
+
+| Metric | Current state |
+|---|---|
+| npm workspaces | 7: web, shared types, analyzer, property engine, harness generator, result parser, evals |
+| Workspace boards | 9: Project, Protocol Map, Intent Board, Invariant Board, Assumption Debt, Ledger, Harness, Results, Export |
+| Verification levels | 10 modeled, with 8 MVP ledger levels surfaced |
+| Assumption statuses | 8 |
+| Skeptic statuses | 6 |
+| Generated Foundry scaffold artifacts | 7 files under `test/invariants/...` |
+
+### Quality Metrics
+
+| Metric | Score or count | Measurement |
+|---|---:|---|
+| Unit and eval assertions | 53 passing | `npm test` |
+| Browser E2E checks | 4 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
+| Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
+| Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
+| Repo validation gates | 4 / 4 passing | lint, typecheck, test, production build |
+| Foundry generated-harness checks | 2 passing modes | scaffold compile smoke and wired offline fixture execution when local `forge` is available |
+
+The eval score is a deterministic fixture score for the current release-blocker suite. ProofBoard does not yet report a model-backed LLM accuracy benchmark over real protocol corpora.
 
 ## Feature Map
 
@@ -126,6 +142,7 @@ Run validation:
 npm run lint
 npm run typecheck
 npm test
+npm run test:e2e
 npm run build
 ```
 

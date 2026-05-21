@@ -28,6 +28,33 @@ Current automated checks cover:
 - ERC4626 fixture shapes covering fee controls, strategy liquidity assumptions, donation-sensitive token calls, donation/inflation templates, and vault-like sources without explicit ERC4626 inheritance
 - deterministic release-blocker eval fixtures for claim, property, assumption, result-parser, audit-packet, and demo schema behavior
 
+## Current Scorecard
+
+### Automated Test Counts
+
+| Surface | Automated checks | Command |
+|---|---:|---|
+| Web component and export tests | 14 | `npm test` |
+| Shared schema and link validation | 6 | `npm test` |
+| Solidity analyzer fixtures | 7 | `npm test` |
+| ERC4626 property-engine fixtures | 10 | `npm test` |
+| Foundry harness-generator fixtures | 4 | `npm test` |
+| Foundry result-parser fixtures | 5 | `npm test` |
+| Deterministic eval assertions | 7 | `npm test` and `npm run eval` |
+| Browser E2E checks | 4 | `npm run test:e2e` |
+
+`npm test` currently covers 53 web, package, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
+
+### Eval And Validation Metrics
+
+| Metric | Current score | Notes |
+|---|---:|---|
+| Release-blocker dataset case pass rate | 8 / 8 | Deterministic cases defined in `evals/src/datasets.ts` |
+| Deterministic fixture accuracy | 100% | 8 passed release-blocker cases divided by 8 defined cases |
+| Validation gates | 4 / 4 | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` |
+| Browser workflow projects | 2 / 2 | Desktop Chrome and mobile Chrome projects |
+| Model-backed LLM benchmark accuracy | Not measured | MVP validates structured claim boundaries and deterministic templates only |
+
 ## Remaining High-Value Gates
 
 Before claiming broader support, keep adding:
