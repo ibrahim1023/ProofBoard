@@ -27,6 +27,8 @@ In scope:
 - Foundry results parsing from pasted or uploaded raw output, including invariant pass/fail status, counterexample or sequence text, weak handler signals, and evidence updates in the ledger.
 - Audit packet exports for the assurance report, ledger JSON, assumption debt, protocol map, approved properties, Foundry scaffold bundle, and audit prep focus.
 - No-LLM template mode as a first-class path, with structured local and optional hosted LLM claim boundaries that cannot bypass human review.
+- Deterministic release-blocker evals for claim extraction, unsupported structured claims, property coverage, weak invariants, assumption generation, Foundry parser fixtures, audit packet completeness, and demo schema validity.
+- ERC4626 demo assets and a completed demo load path for showing claims, invariants, assumption debt, parsed fuzz output, the final ledger, and export prep.
 
 Out of scope for the MVP:
 
@@ -38,12 +40,12 @@ Out of scope for the MVP:
 
 ## Current Implementation Metrics
 
-- 6 npm workspaces: web, shared types, analyzer, property engine, harness generator, result parser.
+- 7 npm workspaces: web, shared types, analyzer, property engine, harness generator, result parser, evals.
 - 9 workspace boards in the web app: Project, Protocol Map, Intent Board, Invariant Board, Assumption Debt, Ledger, Harness, Results, Export.
 - 10 verification levels modeled, with 8 MVP ledger levels surfaced.
 - 8 assumption statuses and 6 skeptic statuses modeled.
 - 7 generated Foundry harness artifacts under `test/invariants/...`.
-- 32 automated tests passing across web and package workspaces.
+- 40 automated tests passing across web, package, and eval workspaces.
 - Validation gates passing: lint, typecheck, test, and production build.
 
 ## Feature Map
@@ -83,6 +85,10 @@ Generated harnesses are traceable to selected ProofBoard property ids. They are 
 ### Results And Audit Exports
 
 `packages/result-parser` preserves raw Foundry output while extracting invariant pass/fail lines, failing test names, counterexample or sequence text, and weak handler warnings. The Results board attaches parsed evidence to linked properties and the Export board produces a separated audit packet for claims, properties, evidence, assumptions, protocol map data, and suggested audit focus.
+
+### Evaluations And Demo
+
+`evals` runs deterministic release-blocker checks before ProofBoard expands claim, property, parser, or export behavior. `examples/erc4626-vault` provides the demo vault, protocol notes, expected claims, reviewed claim state, generated invariant examples, assumption debt, sample Foundry output, final ledger fixture, and export preview used for the MVP walkthrough.
 
 ## Repository Layout
 
@@ -125,6 +131,12 @@ Run a package-specific test:
 
 ```bash
 npm --workspace @proofboard/harness-generator run test
+```
+
+Run release-blocker evals:
+
+```bash
+npm run eval
 ```
 
 ## Evidence Boundaries
