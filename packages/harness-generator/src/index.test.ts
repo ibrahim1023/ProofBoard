@@ -92,13 +92,7 @@ describe("generateFoundryHarnessBundle", () => {
     } satisfies Workspace;
 
     try {
-      write(root, "foundry.toml", `[profile.default]\nsrc = "src"\ntest = "test"\nlibs = ["lib"]\n`);
-      write(root, "src/FixtureVault.sol", `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract FixtureVault {}`);
-      write(
-        root,
-        "lib/forge-std/src/Test.sol",
-        `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract Test { function targetContract(address) internal {} }`
-      );
+      writeFoundryFixture(root);
 
       generateFoundryHarnessBundle(compileWorkspace).files.forEach((file) => write(root, file.path, file.content));
 
@@ -109,6 +103,36 @@ describe("generateFoundryHarnessBundle", () => {
       });
 
       expect(output).toContain("Compiling");
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  it.runIf(forgeAvailable())("executes generated invariants after wiring the target vault fixture", () => {
+    const root = mkdtempSync(join(tmpdir(), "proofboard-wired-harness-"));
+    const wiredWorkspace = {
+      ...workspace,
+      protocolMap: {
+        ...workspace.protocolMap,
+        contracts: [{ ...workspace.protocolMap.contracts[0]!, name: "FixtureVault", path: "src/FixtureVault.sol" }]
+      }
+    } satisfies Workspace;
+
+    try {
+      writeFoundryFixture(root);
+
+      generateFoundryHarnessBundle(wiredWorkspace).files.forEach((file) => {
+        write(root, file.path, wireFixtureVault(file.path, file.content));
+      });
+
+      const output = execFileSync("forge", ["test", "--offline", "--match-contract", "ProofboardVaultInvariant"], {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+
+      expect(output).toContain("invariant_shareAccounting");
+      expect(output).toContain("Suite result: ok");
     } finally {
       rmSync(root, { force: true, recursive: true });
     }
@@ -128,4 +152,22 @@ function write(root: string, path: string, content: string) {
   const file = join(root, path);
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, content);
+}
+
+function writeFoundryFixture(root: string) {
+  write(root, "foundry.toml", `[profile.default]\nsrc = "src"\ntest = "test"\nlibs = ["lib"]\n`);
+  write(root, "src/FixtureVault.sol", `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract FixtureVault {}`);
+  write(
+    root,
+    "lib/forge-std/src/Test.sol",
+    `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract Test { function targetContract(address) internal {} }`
+  );
+}
+
+function wireFixtureVault(path: string, content: string) {
+  if (!path.endsWith("ProofboardVaultInvariant.t.sol")) {
+    return content;
+  }
+
+  return content.replace("// vault = new FixtureVault(...);", "vault = new FixtureVault();");
 }

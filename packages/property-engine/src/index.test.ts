@@ -119,4 +119,40 @@ describe("property engine", () => {
     );
     expect(validateLlmClaimEnvelope({ status: "proposed", claims: [{ title: "Missing fields" }] }, protocolMap).issues.length).toBeGreaterThan(0);
   });
+
+  it("keeps strategy fixtures tied to admin and liquidity assumptions", () => {
+    const strategyMap = analyzeSoliditySource({
+      id: "source_strategy",
+      path: "src/StrategyVault.sol",
+      language: "solidity",
+      content: `contract StrategyVault is ERC4626, Ownable {
+        function deposit(uint256 assets, address receiver) public returns (uint256 shares) {}
+        function redeem(uint256 shares, address receiver, address owner) public returns (uint256 assets) {}
+        function setStrategy(address nextStrategy) external onlyOwner {}
+      }`
+    });
+    const assumptionIds = suggestTokenAssumptions(strategyMap).map((assumption) => assumption.id);
+
+    expect(assumptionIds).toContain("assumption_admin_policy");
+    expect(assumptionIds).toContain("assumption_strategy_returns_funds");
+  });
+
+  it("keeps donation and vault-like fixtures on ERC4626 claim templates", () => {
+    const vaultLikeMap = analyzeSoliditySource({
+      id: "source_vault_like",
+      path: "src/VaultLikeAdapter.sol",
+      language: "solidity",
+      content: `contract VaultLikeAdapter {
+        IERC20 public assetToken;
+
+        function deposit(uint256 assets, address receiver) external returns (uint256 shares) {}
+        function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares) {}
+        function donate(uint256 assets) external { assetToken.transferFrom(msg.sender, address(this), assets); }
+      }`
+    });
+    const claimIds = suggestClaimsFromProtocolMap(vaultLikeMap).map((claim) => claim.id);
+
+    expect(claimIds).toContain("claim_exchange_rate_consistency");
+    expect(claimIds).toContain("claim_donation_inflation_resistance");
+  });
 });
