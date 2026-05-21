@@ -38,6 +38,8 @@ Out of scope for the MVP:
 - Full arbitrary DeFi coverage beyond ERC4626 and vault-like secure cores.
 - Mandatory paid LLM API or mandatory GitHub App integration.
 
+Deferred scope and next expansion candidates are tracked in `docs/deferred-scope.md`.
+
 ## Current Implementation Metrics
 
 - 7 npm workspaces: web, shared types, analyzer, property engine, harness generator, result parser, evals.
