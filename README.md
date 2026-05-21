@@ -24,7 +24,9 @@ In scope:
 - Assumption Debt Board with status, severity, linked functions, linked properties, accepted-risk visibility, and out-of-scope visibility.
 - Verification Ledger that separates claim status, property status, verification level, evidence, assumptions, risk, and next action.
 - Foundry invariant harness generator with invariant test, handler, actor model, standard token mock, fee-on-transfer token mock, rebasing token mock, setup instructions, suggested `forge test` command, code viewer, and downloadable bundle.
-- No-LLM template mode as a first-class path.
+- Foundry results parsing from pasted or uploaded raw output, including invariant pass/fail status, counterexample or sequence text, weak handler signals, and evidence updates in the ledger.
+- Audit packet exports for the assurance report, ledger JSON, assumption debt, protocol map, approved properties, Foundry scaffold bundle, and audit prep focus.
+- No-LLM template mode as a first-class path, with structured local and optional hosted LLM claim boundaries that cannot bypass human review.
 
 Out of scope for the MVP:
 
@@ -36,12 +38,12 @@ Out of scope for the MVP:
 
 ## Current Implementation Metrics
 
-- 5 npm workspaces: web, shared types, analyzer, property engine, harness generator.
+- 6 npm workspaces: web, shared types, analyzer, property engine, harness generator, result parser.
 - 9 workspace boards in the web app: Project, Protocol Map, Intent Board, Invariant Board, Assumption Debt, Ledger, Harness, Results, Export.
 - 10 verification levels modeled, with 8 MVP ledger levels surfaced.
 - 8 assumption statuses and 6 skeptic statuses modeled.
 - 7 generated Foundry harness artifacts under `test/invariants/...`.
-- 19 automated tests passing across web and package workspaces.
+- 32 automated tests passing across web and package workspaces.
 - Validation gates passing: lint, typecheck, test, and production build.
 
 ## Feature Map
@@ -60,7 +62,7 @@ The web app in `apps/web` is the main ProofBoard surface. It provides project in
 
 ### Property Engine
 
-`packages/property-engine` generates template-based ERC4626 claims, properties, token assumptions, property-to-assumption links, and skeptic review findings. Generated claims and properties never become approved or proven automatically.
+`packages/property-engine` generates template-based ERC4626 claims, properties, token assumptions, property-to-assumption links, and skeptic review findings. It also validates structured local or hosted LLM claim payloads and accepts insufficient-evidence refusals. Generated claims and properties never become approved or proven automatically.
 
 ### Harness Generator
 
@@ -77,6 +79,10 @@ test/invariants/README.md
 ```
 
 Generated harnesses are traceable to selected ProofBoard property ids. They are scaffold code, not proof of safety; teams must wire constructors, handlers, actor roles, and protocol-specific assertions before treating Foundry output as verification evidence.
+
+### Results And Audit Exports
+
+`packages/result-parser` preserves raw Foundry output while extracting invariant pass/fail lines, failing test names, counterexample or sequence text, and weak handler warnings. The Results board attaches parsed evidence to linked properties and the Export board produces a separated audit packet for claims, properties, evidence, assumptions, protocol map data, and suggested audit focus.
 
 ## Repository Layout
 
