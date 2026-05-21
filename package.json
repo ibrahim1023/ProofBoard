@@ -9,14 +9,16 @@
     "packages/analyzer",
     "packages/property-engine",
     "packages/harness-generator",
-    "packages/result-parser"
+    "packages/result-parser",
+    "evals"
   ],
   "scripts": {
     "dev": "npm --workspace @proofboard/web run dev",
     "build": "npm --workspace @proofboard/web run build",
     "lint": "npm --workspace @proofboard/web run lint",
     "typecheck": "npm --workspaces --if-present run typecheck",
-    "test": "npm --workspaces --if-present run test"
+    "test": "npm --workspaces --if-present run test",
+    "eval": "npm --workspace @proofboard/evals run eval"
   },
   "engines": {
     "node": ">=22"

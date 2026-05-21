@@ -1,0 +1,4 @@
+[PASS] invariant_redeemableAssets() (runs: 256)
+[FAIL. Reason: assertion failed] invariant_pauseBehavior()
+Counterexample: pause accepted deposit
+Sequence: handler.deposit(1 ether, alice)

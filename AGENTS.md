@@ -40,7 +40,7 @@ Build:
 - `npm run build`
 
 Eval:
-- Not configured yet.
+- `npm run eval`
 
 ## Product Rules
 - Proofboard is not an AI auditor, vulnerability scanner, or safety guarantee.
