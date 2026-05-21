@@ -10,6 +10,7 @@ import {
   suggestClaimsFromProtocolMap,
   suggestTokenAssumptions
 } from "@proofboard/property-engine";
+import { generateAuditExportFiles } from "@/lib/audit-packet";
 import { demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
 import type { Assumption, AssumptionStatus, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
 
@@ -75,6 +76,7 @@ Sequence: handler.deposit(1 ether, alice)`);
     assumptionFilter === "All" ? true : assumption.status === assumptionFilter
   );
   const harnessBundle = useMemo(() => generateFoundryHarnessBundle(workspace), [workspace]);
+  const auditFiles = useMemo(() => generateAuditExportFiles(workspace, harnessBundle), [harnessBundle, workspace]);
   const selectedHarnessFile = harnessBundle.files.find((file) => file.path === selectedHarnessPath) ?? harnessBundle.files[0];
 
   function updateField(field: "name" | "description" | "solidity", value: string) {
@@ -181,6 +183,16 @@ Sequence: handler.deposit(1 ether, alice)`);
     const link = document.createElement("a");
     link.href = url;
     link.download = "generated-foundry-invariants.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadTextFile(name: string, content: string, mimeType: string) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -696,17 +708,21 @@ Sequence: handler.deposit(1 ether, alice)`);
               <h3>Export</h3>
             </div>
             <div className="export-grid">
-              {[
-                "proofboard-report.md",
-                "proofboard-ledger.json",
-                "assumption-debt.md",
-                "protocol-map.json",
-                "approved-properties.json",
-                "generated-foundry-invariants.zip",
-                "audit-prep.md"
-              ].map((item) => (
-                <div className="export-item" key={item}>{item}</div>
+              {auditFiles.map((file) => (
+                <button
+                  className="export-item export-download"
+                  key={file.name}
+                  onClick={() => downloadTextFile(file.name, file.content, file.mimeType)}
+                  type="button"
+                >
+                  <strong>{file.name}</strong>
+                  <span>{file.mimeType}</span>
+                </button>
               ))}
+            </div>
+            <div className="setup-list">
+              <span>Exports preserve approved claims, candidate properties, evidence, assumption debt, and suggested audit focus separately.</span>
+              <span>Generated Foundry files remain scaffold artifacts until reviewed and run.</span>
             </div>
           </section>
         )}

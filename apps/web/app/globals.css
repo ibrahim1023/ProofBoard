@@ -327,6 +327,17 @@ textarea {
   padding: 14px;
 }
 
+.export-download {
+  background: #fbfcfb;
+  color: var(--text);
+  text-align: left;
+}
+
+.export-download span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 .tree-group span,
 .compact-card span,
 .claim-card span {

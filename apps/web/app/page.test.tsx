@@ -83,4 +83,14 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByText("Parser notes")).toBeInTheDocument();
     expect(screen.getByText("No invariant pass or fail results were found in the Foundry output.")).toBeInTheDocument();
   });
+
+  it("renders downloadable audit packet artifacts", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+
+    expect(screen.getByRole("button", { name: /proofboard-report\.md/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /generated-foundry-invariants\.json/ })).toBeInTheDocument();
+    expect(screen.getByText(/suggested audit focus separately/i)).toBeInTheDocument();
+  });
 });
