@@ -4,7 +4,7 @@ This note captures work that is intentionally outside the current ProofBoard MVP
 
 ## Current Boundary
 
-ProofBoard currently focuses on ERC4626 and vault-like secure cores. The implemented workflow is a reviewable assurance workspace: protocol mapping, claim review, candidate properties, assumption debt, Foundry harness generation, Foundry output parsing, verification evidence, and audit packet export.
+ProofBoard currently focuses on ERC4626 and vault-like secure cores. The implemented workflow is a reviewable assurance workspace: protocol mapping, claim review, candidate properties, assumption debt, Foundry harness generation, local or Docker Foundry command planning, Foundry output parsing, verification evidence, and audit packet export.
 
 The MVP does not claim that a protocol is safe or vulnerability-free. It tracks evidence and unresolved assumptions.
 
@@ -12,7 +12,7 @@ The MVP does not claim that a protocol is safe or vulnerability-free. It tracks 
 
 - Full arbitrary DeFi protocol support beyond ERC4626 and vault-like systems.
 - Lending protocols, AMMs, bridges, cross-chain messaging, ZK circuits, and multi-chain deployment assurance.
-- Hosted sandbox execution or an automatic verification runner.
+- Hosted sandbox execution or browser-side automatic verification execution.
 - Automatic formal proof generation.
 - Mandatory paid LLM API access.
 - Mandatory GitHub App integration.
@@ -22,7 +22,7 @@ The MVP does not claim that a protocol is safe or vulnerability-free. It tracks 
 
 These are the most direct follow-ons because they extend workflows already described in the scope:
 
-- Local or Docker-based Foundry execution with captured output and ledger updates.
+- Backend or local-worker execution that runs the planned Foundry command from the web app and streams captured output into the Results board.
 - Advanced verification integrations: Halmos, Echidna, Medusa, Solidity SMTChecker, Certora CVL skeleton export, and Scribble annotation export.
 - Broader ERC4626 target fixtures and harness wiring for fees, strategies, donation or inflation sensitivity, and adversarial token behavior.
 - Browser E2E automation for the current workspace before broadening protocol coverage.

@@ -12,9 +12,10 @@ ProofBoard is a web-first protocol assurance workspace. The system should make p
 6. The user approves, edits, or rejects claims.
 7. The property engine suggests ERC4626-specific invariants and assumptions.
 8. The harness generator emits Foundry invariant test scaffolding.
-9. The user runs tests locally and pastes or uploads output.
-10. The result parser updates the verification ledger.
-11. The user exports an audit-prep packet.
+9. The runner surfaces local or Docker Foundry command plans and can capture raw output in Node workflows.
+10. The user pastes or uploads captured output for parsing.
+11. The result parser updates the verification ledger.
+12. The user exports an audit-prep packet.
 
 ## Recommended Stack
 
@@ -32,13 +33,14 @@ Backend and analysis:
 - SQLite or Postgres for workspace data
 - Tree-sitter Solidity parser
 - Optional Slither integration
-- Docker-based execution later, not required for the MVP
+- Docker-based Foundry execution planning, with browser execution deferred to a backend or local worker
 
 ## Package Boundaries
 
 - `packages/analyzer/`: extracts contracts, functions, inheritance, state variables, roles, external calls, and asset flows.
 - `packages/property-engine/`: owns ERC4626 claim, property, invariant, assumption, and skeptic templates.
 - `packages/harness-generator/`: creates Foundry invariant tests, handlers, actor models, and mocks.
+- `packages/verification-runner/`: plans local and Docker Foundry execution and captures raw output in Node workflows.
 - `packages/result-parser/`: parses Foundry output and maps results to properties and evidence.
 - `packages/shared-types/`: defines workspace, contract, claim, property, assumption, and verification-run schemas.
 

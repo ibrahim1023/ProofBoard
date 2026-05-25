@@ -24,6 +24,7 @@ In scope:
 - Assumption Debt Board with status, severity, linked functions, linked properties, accepted-risk visibility, and out-of-scope visibility.
 - Verification Ledger that separates claim status, property status, verification level, evidence, assumptions, risk, and next action.
 - Foundry invariant harness generator with invariant test, handler, actor model, standard token mock, fee-on-transfer token mock, rebasing token mock, setup instructions, suggested `forge test` command, code viewer, and downloadable bundle.
+- Local and Docker Foundry runner planning with a Node execution package, explicit command preview, and raw output capture boundaries.
 - Foundry results parsing from pasted or uploaded raw output, including invariant pass/fail status, counterexample or sequence text, weak handler signals, and evidence updates in the ledger.
 - Audit packet exports for the assurance report, ledger JSON, assumption debt, protocol map, approved properties, Foundry scaffold bundle, and audit prep focus.
 - No-LLM template mode as a first-class path, with structured local and optional hosted LLM claim boundaries that cannot bypass human review.
@@ -46,7 +47,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Current state |
 |---|---|
-| npm workspaces | 7: web, shared types, analyzer, property engine, harness generator, result parser, evals |
+| npm workspaces | 8: web, shared types, analyzer, property engine, harness generator, verification runner, result parser, evals |
 | Workspace boards | 9: Project, Protocol Map, Intent Board, Invariant Board, Assumption Debt, Ledger, Harness, Results, Export |
 | Verification levels | 10 modeled, with 8 MVP ledger levels surfaced |
 | Assumption statuses | 8 |
@@ -57,7 +58,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 53 passing | `npm test` |
+| Unit and eval assertions | 58 passing | `npm test` |
 | Browser E2E checks | 4 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
@@ -102,7 +103,7 @@ Generated harnesses are traceable to selected ProofBoard property ids. They are 
 
 ### Results And Audit Exports
 
-`packages/result-parser` preserves raw Foundry output while extracting invariant pass/fail lines, failing test names, counterexample or sequence text, and weak handler warnings. The Results board attaches parsed evidence to linked properties and the Export board produces a separated audit packet for claims, properties, evidence, assumptions, protocol map data, and suggested audit focus.
+`packages/verification-runner` plans local or Docker Foundry commands for generated harnesses and can execute them from Node-based workflows. The web Results board exposes the command plan and evidence boundary, while `packages/result-parser` preserves raw Foundry output and extracts invariant pass/fail lines, failing test names, counterexample or sequence text, and weak handler warnings. Parsed evidence is attached to linked properties, and the Export board produces a separated audit packet for claims, properties, evidence, assumptions, protocol map data, and suggested audit focus.
 
 ### Evaluations And Demo
 
@@ -115,6 +116,7 @@ apps/web/                    Web workspace UI
 packages/analyzer/           Solidity and project analysis
 packages/property-engine/    ERC4626 property and assumption templates
 packages/harness-generator/  Foundry invariant harness generation
+packages/verification-runner/ Local and Docker Foundry run planning
 packages/result-parser/      Foundry output parsing and ledger updates
 packages/shared-types/       Shared schemas and types
 examples/erc4626-vault/      Demo vault fixture area
