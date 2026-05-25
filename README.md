@@ -24,7 +24,7 @@ In scope:
 - Assumption Debt Board with status, severity, linked functions, linked properties, accepted-risk visibility, and out-of-scope visibility.
 - Verification Ledger that separates claim status, property status, verification level, evidence, assumptions, risk, and next action.
 - Foundry invariant harness generator with invariant test, handler, actor model, standard token mock, fee-on-transfer token mock, rebasing token mock, setup instructions, suggested `forge test` command, code viewer, and downloadable bundle.
-- Local and Docker Foundry runner planning with a Node execution package, explicit command preview, and raw output capture boundaries.
+- Local and Docker Foundry runner planning plus a local server bridge that executes structured runner requests and captures raw output for review.
 - Foundry results parsing from pasted or uploaded raw output, including invariant pass/fail status, counterexample or sequence text, weak handler signals, and evidence updates in the ledger.
 - Audit packet exports for the assurance report, ledger JSON, assumption debt, protocol map, approved properties, Foundry scaffold bundle, and audit prep focus.
 - No-LLM template mode as a first-class path, with structured local and optional hosted LLM claim boundaries that cannot bypass human review.
@@ -58,7 +58,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 64 passing | `npm test` |
+| Unit and eval assertions | 69 passing | `npm test` |
 | Browser E2E checks | 6 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
@@ -103,7 +103,7 @@ Generated harnesses are traceable to selected ProofBoard property ids. They are 
 
 ### Results And Audit Exports
 
-`packages/verification-runner` plans local or Docker Foundry commands for generated harnesses and can execute them from Node-based workflows. The web Results board exposes the command plan and evidence boundary, while `packages/result-parser` preserves raw Foundry output and extracts invariant pass/fail lines, failing test names, counterexample or sequence text, and weak handler warnings. Parsed evidence is attached to linked properties, and the Export board produces a separated audit packet for claims, properties, evidence, assumptions, protocol map data, and suggested audit focus.
+`packages/verification-runner` plans local or Docker Foundry commands for generated harnesses and can execute them from Node-based workflows. The web Results board exposes the command plan, calls a local `run-foundry` server route with structured runner fields, captures stdout/stderr into the raw output field, and keeps parsing as a separate evidence step. `packages/result-parser` preserves raw Foundry output and extracts invariant pass/fail lines, failing test names, counterexample or sequence text, and weak handler warnings. Parsed evidence is attached to linked properties, and the Export board produces a separated audit packet for claims, properties, evidence, assumptions, protocol map data, and suggested audit focus.
 
 ### Evaluations And Demo
 
