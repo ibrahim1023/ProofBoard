@@ -1,7 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Home from "./page";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("ProofBoard workspace", () => {
   it("renders the workspace shell with demo ERC4626 data", () => {
@@ -146,6 +150,51 @@ describe("ProofBoard workspace", () => {
 
     expect(screen.getByText("forge test --match-contract ProofboardVaultInvariant")).toBeInTheDocument();
     expect(screen.getByText(/Captured local Forge output must be parsed before it updates ProofBoard evidence/)).toBeInTheDocument();
+  });
+
+  it("captures runner output before parsing it into evidence", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        execution: {
+          status: "passed",
+          rawOutput: "[PASS] invariant_redeemableAssets() (runs: 256)",
+          exitCode: 0
+        }
+      })
+    } as Response);
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Results" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run planned command" }));
+
+    expect(await screen.findByText("Runner finished with status passed and exit code 0.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Raw Foundry output")).toHaveValue("[PASS] invariant_redeemableAssets() (runs: 256)");
+    expect(screen.getByText("Review the captured output, then parse it to update the ledger.")).toBeInTheDocument();
+  });
+
+  it("shows runner validation failures without changing output", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      json: async () => ({
+        ok: false,
+        errors: ["projectPath must be an absolute local path."]
+      })
+    } as Response);
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Results" }));
+    fireEvent.change(screen.getByLabelText("Foundry project path"), { target: { value: "relative-path" } });
+    fireEvent.click(screen.getByRole("button", { name: "Run planned command" }));
+
+    expect(await screen.findByText("projectPath must be an absolute local path.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Raw Foundry output")).toHaveValue(
+      `[PASS] invariant_redeemableAssets() (runs: 256)
+[FAIL. Reason: assertion failed] invariant_pauseBehavior()
+Counterexample: paused vault accepted a deposit
+Sequence: handler.deposit(1 ether, alice)`
+    );
   });
 
   it("renders downloadable audit packet artifacts", () => {

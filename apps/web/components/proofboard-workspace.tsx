@@ -64,6 +64,8 @@ export function ProofboardWorkspace() {
   const [runnerMode, setRunnerMode] = useState<RunnerMode>("docker");
   const [runnerProjectPath, setRunnerProjectPath] = useState("/absolute/path/to/foundry-project");
   const [runnerDockerImage, setRunnerDockerImage] = useState("ghcr.io/foundry-rs/foundry:stable");
+  const [runnerNotice, setRunnerNotice] = useState<string[]>([]);
+  const [runnerBusy, setRunnerBusy] = useState(false);
   const primarySource = workspace.sources[0];
   const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
 
@@ -242,6 +244,39 @@ export function ProofboardWorkspace() {
     const parsed = parseFoundryOutput(foundryOutput, workspace.properties);
     setResultNotice([...parsed.errors, ...parsed.warnings]);
     setWorkspace((current) => applyFoundryOutput(current, foundryOutput));
+  }
+
+  async function runPlannedFoundryCommand() {
+    setRunnerBusy(true);
+    setRunnerNotice(["Running planned Foundry command. Captured output will still need parsing before it becomes ledger evidence."]);
+
+    try {
+      const response = await fetch("/api/run-foundry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: runnerMode,
+          projectPath: runnerProjectPath,
+          dockerImage: runnerMode === "docker" ? runnerDockerImage : undefined
+        })
+      });
+      const payload = (await response.json()) as RunnerApiResponse;
+
+      if (!response.ok || !payload.execution) {
+        setRunnerNotice(payload.errors && payload.errors.length > 0 ? payload.errors : ["Runner request failed before execution."]);
+        return;
+      }
+
+      setFoundryOutput(payload.execution.rawOutput);
+      setRunnerNotice([
+        `Runner finished with status ${payload.execution.status}${payload.execution.exitCode === undefined ? "" : ` and exit code ${payload.execution.exitCode}`}.`,
+        "Review the captured output, then parse it to update the ledger."
+      ]);
+    } catch {
+      setRunnerNotice(["Runner request failed. Confirm the local ProofBoard server is running and Docker or Forge is available."]);
+    } finally {
+      setRunnerBusy(false);
+    }
   }
 
   async function uploadFoundryOutput(file?: File) {
@@ -788,6 +823,9 @@ export function ProofboardWorkspace() {
               </label>
               <div className="stack">
                 <div className="action-row">
+                  <button className="secondary-action" disabled={runnerBusy} onClick={() => void runPlannedFoundryCommand()} type="button">
+                    {runnerBusy ? "Running..." : "Run planned command"}
+                  </button>
                   <button className="primary-action" onClick={parseResults} type="button">
                     Parse Foundry output
                   </button>
@@ -800,6 +838,14 @@ export function ProofboardWorkspace() {
                     Upload output
                   </label>
                 </div>
+                {runnerNotice.length > 0 && (
+                  <div className="compact-card result-notice" role="status">
+                    <strong>Runner status</strong>
+                    {runnerNotice.map((notice) => (
+                      <span key={notice}>{notice}</span>
+                    ))}
+                  </div>
+                )}
                 <div className="compact-card">
                   <strong>Parsed runs</strong>
                   <span>{workspace.verificationRuns.length} preserved verification run records</span>
@@ -847,6 +893,16 @@ export function ProofboardWorkspace() {
       </section>
     </main>
   );
+}
+
+interface RunnerApiResponse {
+  ok: boolean;
+  errors?: string[];
+  execution?: {
+    status: "passed" | "failed" | "errored";
+    rawOutput: string;
+    exitCode?: number;
+  };
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
