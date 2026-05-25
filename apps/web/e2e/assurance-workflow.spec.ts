@@ -52,3 +52,21 @@ test("keeps workspace navigation usable across configured viewports", async ({ p
   await expect(page.getByRole("heading", { name: "Assumption Debt" })).toBeVisible();
   await expect(page.getByLabel("Filter")).toBeVisible();
 });
+
+test("shows runner plans and parser errors without creating evidence", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Results" }).click();
+  await expect(page.getByText("Runner plan")).toBeVisible();
+  await expect(page.getByText(/docker run --rm/)).toBeVisible();
+  await expect(page.getByText(/Captured Docker output must be parsed before it updates ProofBoard evidence/)).toBeVisible();
+
+  await page.getByLabel("Runner mode").selectOption("local");
+  await expect(page.getByText("forge test --match-contract ProofboardVaultInvariant")).toBeVisible();
+  await expect(page.getByText(/Captured local Forge output must be parsed before it updates ProofBoard evidence/)).toBeVisible();
+
+  await page.getByLabel("Raw Foundry output").fill("No tests match the provided pattern: ProofboardVaultInvariant");
+  await page.getByRole("button", { name: "Parse Foundry output" }).click();
+  await expect(page.getByText("Parser notes")).toBeVisible();
+  await expect(page.getByText("No invariant pass or fail results were found in the Foundry output.")).toBeVisible();
+});
