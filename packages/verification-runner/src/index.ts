@@ -1,4 +1,3 @@
-import { execFile } from "node:child_process";
 import type { HarnessBundle } from "@proofboard/harness-generator";
 import type { Workspace } from "@proofboard/shared-types";
 
@@ -129,9 +128,11 @@ function missingHarnessWarnings(harnessBundle: HarnessBundle) {
 
 function execFileExecutor(file: string, args: string[], options: { cwd: string }) {
   return new Promise<{ stdout: string; stderr: string; exitCode: number }>((resolve) => {
-    execFile(file, args, { cwd: options.cwd }, (error, stdout, stderr) => {
-      const exitCode = typeof error === "object" && error && "code" in error && typeof error.code === "number" ? error.code : 0;
-      resolve({ stdout, stderr, exitCode });
+    void import("node:child_process").then(({ execFile }) => {
+      execFile(file, args, { cwd: options.cwd }, (error, stdout, stderr) => {
+        const exitCode = typeof error === "object" && error && "code" in error && typeof error.code === "number" ? error.code : 0;
+        resolve({ stdout, stderr, exitCode });
+      });
     });
   });
 }

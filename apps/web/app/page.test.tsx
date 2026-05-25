@@ -132,6 +132,22 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByText("No invariant pass or fail results were found in the Foundry output.")).toBeInTheDocument();
   });
 
+  it("shows Docker and local Foundry runner plans without treating them as evidence", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Results" }));
+
+    expect(screen.getByText("Runner plan")).toBeInTheDocument();
+    expect(screen.getByText(/docker run --rm/)).toBeInTheDocument();
+    expect(screen.getByText(/Captured Docker output must be parsed before it updates ProofBoard evidence/)).toBeInTheDocument();
+    expect(screen.getByText(/Capture stdout\/stderr into proofboard-foundry-output\.log/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Runner mode"), { target: { value: "local" } });
+
+    expect(screen.getByText("forge test --match-contract ProofboardVaultInvariant")).toBeInTheDocument();
+    expect(screen.getByText(/Captured local Forge output must be parsed before it updates ProofBoard evidence/)).toBeInTheDocument();
+  });
+
   it("renders downloadable audit packet artifacts", () => {
     render(<Home />);
 

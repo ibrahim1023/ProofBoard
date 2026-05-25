@@ -222,6 +222,7 @@ textarea {
 
 .code-input,
 .code-preview,
+.command-preview,
 .claim-editor {
   font-family: "SFMono-Regular", Consolas, monospace;
   line-height: 1.5;
@@ -241,6 +242,16 @@ textarea {
   color: #eef8f2;
   overflow: auto;
   padding: 18px;
+}
+
+.command-preview {
+  background: #101513;
+  color: #eef8f2;
+  margin: 0;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .action-row {

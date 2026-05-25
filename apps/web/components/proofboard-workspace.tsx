@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { analyzeSoliditySource } from "@proofboard/analyzer";
 import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
 import { applyFoundryOutput, parseFoundryOutput } from "@proofboard/result-parser";
+import { createFoundryRunPlan, type RunnerMode } from "@proofboard/verification-runner";
 import {
   claimSuggestionBoundaries,
   type ClaimSuggestionMode,
@@ -60,6 +61,9 @@ export function ProofboardWorkspace() {
   const [llmClaimNotice, setLlmClaimNotice] = useState<string[]>([]);
   const [foundryOutput, setFoundryOutput] = useState(demoFoundryOutput);
   const [resultNotice, setResultNotice] = useState<string[]>([]);
+  const [runnerMode, setRunnerMode] = useState<RunnerMode>("docker");
+  const [runnerProjectPath, setRunnerProjectPath] = useState("/absolute/path/to/foundry-project");
+  const [runnerDockerImage, setRunnerDockerImage] = useState("ghcr.io/foundry-rs/foundry:stable");
   const primarySource = workspace.sources[0];
   const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
 
@@ -82,6 +86,15 @@ export function ProofboardWorkspace() {
     assumptionFilter === "All" ? true : assumption.status === assumptionFilter
   );
   const harnessBundle = useMemo(() => generateFoundryHarnessBundle(workspace), [workspace]);
+  const runnerPlan = useMemo(
+    () =>
+      createFoundryRunPlan(workspace, harnessBundle, {
+        mode: runnerMode,
+        projectPath: runnerProjectPath,
+        dockerImage: runnerDockerImage
+      }),
+    [harnessBundle, runnerDockerImage, runnerMode, runnerProjectPath, workspace]
+  );
   const auditFiles = useMemo(() => generateAuditExportFiles(workspace, harnessBundle), [harnessBundle, workspace]);
   const selectedHarnessFile = harnessBundle.files.find((file) => file.path === selectedHarnessPath) ?? harnessBundle.files[0];
 
@@ -729,10 +742,41 @@ export function ProofboardWorkspace() {
         {activeBoard === "results" && (
           <section className="section-block wide">
             <div className="section-heading">
-              <p className="eyebrow">Manual verification input</p>
+              <p className="eyebrow">Verification runner and evidence input</p>
               <h3>Foundry Results</h3>
             </div>
             <div className="results-grid">
+              <div className="stack">
+                <div className="compact-card">
+                  <strong>Runner plan</strong>
+                  <span>{runnerPlan.evidenceBoundary}</span>
+                  <label>
+                    Runner mode
+                    <select onChange={(event) => setRunnerMode(event.target.value as RunnerMode)} value={runnerMode}>
+                      <option value="docker">Docker Foundry</option>
+                      <option value="local">Local forge</option>
+                    </select>
+                  </label>
+                  <label>
+                    Foundry project path
+                    <input onChange={(event) => setRunnerProjectPath(event.target.value)} value={runnerProjectPath} />
+                  </label>
+                  {runnerMode === "docker" && (
+                    <label>
+                      Docker image
+                      <input onChange={(event) => setRunnerDockerImage(event.target.value)} value={runnerDockerImage} />
+                    </label>
+                  )}
+                  <pre className="command-preview">{runnerPlan.command}</pre>
+                  <span>Capture stdout/stderr into {runnerPlan.outputFile}, then paste or upload it below.</span>
+                </div>
+                <div className="compact-card result-notice">
+                  <strong>Runner warnings</strong>
+                  {runnerPlan.warnings.map((warning) => (
+                    <span key={warning}>{warning}</span>
+                  ))}
+                </div>
+              </div>
               <label>
                 Raw Foundry output
                 <textarea
