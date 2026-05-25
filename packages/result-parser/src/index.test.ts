@@ -101,4 +101,45 @@ Warning: No calls made to target contract for selector deposit`,
     expect(next.properties.map((property) => property.verificationLevel)).toEqual(["test_generated", "test_generated"]);
     expect(next.evidence).toEqual([]);
   });
+
+  it("parses Forge summary logs with runs, calls, and reverts metadata", () => {
+    const parsed = parseFoundryOutput(
+      `Ran 2 tests for test/invariants/ProofboardVaultInvariant.t.sol:ProofboardVaultInvariant
+[PASS] invariant_redeemableAssets() (runs: 256, calls: 128000, reverts: 0)
+[PASS] invariant_pauseBehavior() (runs: 256, calls: 51200, reverts: 10)
+Suite result: ok. 2 passed; 0 failed; 0 skipped`,
+      workspace.properties
+    );
+
+    expect(parsed.runStatus).toBe("passed");
+    expect(parsed.results).toEqual([
+      expect.objectContaining({ propertyId: "property_redeemable_assets", status: "passed" }),
+      expect.objectContaining({ propertyId: "property_pause_behavior", status: "passed" })
+    ]);
+  });
+
+  it("keeps multi-line failure traces attached to the active failing invariant", () => {
+    const parsed = parseFoundryOutput(
+      `[FAIL: assertion failed] invariant_pauseBehavior()
+Counterexample:
+  sender=0x0000000000000000000000000000000000000B0B
+  args=[1, 2, 3]
+Sequence:
+  handler.pause()
+  handler.deposit(1 ether, 0)`,
+      workspace.properties
+    );
+
+    expect(parsed.runStatus).toBe("failed");
+    expect(parsed.results[0]).toMatchObject({ propertyId: "property_pause_behavior", status: "failed" });
+    expect(parsed.results[0]?.counterexample).toContain("sender=0x0000000000000000000000000000000000000B0B");
+    expect(parsed.results[0]?.counterexample).toContain("handler.deposit(1 ether, 0)");
+  });
+
+  it("reports Forge no-match output as a parser error instead of evidence", () => {
+    const parsed = parseFoundryOutput("No tests match the provided pattern: ProofboardVaultInvariant", workspace.properties);
+
+    expect(parsed.runStatus).toBe("errored");
+    expect(parsed.errors).toEqual(["No invariant pass or fail results were found in the Foundry output."]);
+  });
 });

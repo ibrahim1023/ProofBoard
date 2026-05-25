@@ -36,7 +36,7 @@ export function parseFoundryOutput(rawOutput: string, properties: Property[]): P
       continue;
     }
 
-    if (activeFailure && /counterexample|sequence|calldata|sender|args/i.test(line)) {
+    if (activeFailure && (/counterexample|sequence|calldata|sender|args/i.test(line) || /^\s+[\w.]+\(/.test(line))) {
       activeFailure.counterexample = [activeFailure.counterexample, line.trim()].filter(Boolean).join("\n");
     }
   }

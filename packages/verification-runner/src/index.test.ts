@@ -79,6 +79,24 @@ describe("verification runner", () => {
     expect(plan.command).toContain("docker run --rm");
   });
 
+  it("uses the default Foundry Docker image when one is not provided", () => {
+    const plan = createFoundryRunPlan(workspace, generateFoundryHarnessBundle(workspace), {
+      mode: "docker",
+      projectPath: "/tmp/proofboard"
+    });
+
+    expect(plan.args).toContain("ghcr.io/foundry-rs/foundry:stable");
+  });
+
+  it("quotes command preview paths that contain spaces", () => {
+    const plan = createFoundryRunPlan(workspace, generateFoundryHarnessBundle(workspace), {
+      mode: "docker",
+      projectPath: "/tmp/proof board"
+    });
+
+    expect(plan.command).toContain('"/tmp/proof board:/workspace"');
+  });
+
   it("captures raw output from a runner executor", async () => {
     const plan = createFoundryRunPlan(workspace, generateFoundryHarnessBundle(workspace), {
       mode: "local",
@@ -92,6 +110,24 @@ describe("verification runner", () => {
 
     expect(execution.status).toBe("passed");
     expect(execution.rawOutput).toContain("invariant_redeemableAssets");
+  });
+
+  it("preserves stderr and failed exit codes as raw output", async () => {
+    const plan = createFoundryRunPlan(workspace, generateFoundryHarnessBundle(workspace), {
+      mode: "docker",
+      projectPath: "/tmp/proofboard"
+    });
+    const execution = await runFoundryPlan(plan, async () => ({
+      stdout: "",
+      stderr: "Error: No tests match the provided pattern",
+      exitCode: 1
+    }));
+
+    expect(execution).toMatchObject({
+      status: "failed",
+      exitCode: 1,
+      rawOutput: "Error: No tests match the provided pattern"
+    });
   });
 
   it("refuses execution when the project path is missing", async () => {
