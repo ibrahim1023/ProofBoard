@@ -8,7 +8,8 @@ ProofBoard is a web-based protocol assurance workspace for smart contract teams.
 - Before editing files in a subdirectory, check that directory and its parents for another `AGENTS.md`.
 - Local `AGENTS.md` files override this file for their subtree.
 - If instructions conflict, stop and report the conflict.
-- Read `task.md` and `progress.md` before starting implementation work.
+- Read `task.md` before starting implementation work.
+- Do not update `progress.md` unless the user explicitly asks for it.
 
 ## Project Layout
 - `apps/web/`: Proofboard web application surface.
@@ -66,7 +67,8 @@ Before completion:
 - Run `npm run lint`, `npm run typecheck`, and `npm run build` for web changes.
 - For documentation-only changes, inspect changed files and report that automated gates are not configured.
 - Confirm `README.md` reflects major completed feature work when implementation scope changes.
-- Update `task.md` and `progress.md` with commands run, results, risks, and next step.
+- Update `task.md` with task status, risks, and next step when project state changes.
+- Do not update `progress.md` as part of normal validation or completion reporting unless explicitly requested.
 
 ## Permissions
 Allowed without approval:
@@ -89,5 +91,5 @@ Requires approval:
 A task is done only when:
 - the requested scope is implemented or the blocker is documented
 - relevant validation has been run, or missing validation is explicitly noted
-- `task.md` and `progress.md` reflect current state
+- `task.md` reflects current state
 - unresolved risks and next steps are recorded
