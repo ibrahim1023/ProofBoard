@@ -9,6 +9,7 @@
     "packages/analyzer",
     "packages/property-engine",
     "packages/harness-generator",
+    "packages/verification-runner",
     "packages/result-parser",
     "evals"
   ],
