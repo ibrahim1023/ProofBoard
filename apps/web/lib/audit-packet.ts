@@ -1,5 +1,6 @@
 import type { AuditPacket, Assumption, Property, Workspace } from "@proofboard/shared-types";
 import type { HarnessBundle } from "@proofboard/harness-generator";
+import { calculateVerificationReadiness, type VerificationReadiness } from "./readiness";
 
 export interface AuditExportFile {
   name: string;
@@ -29,33 +30,43 @@ export function buildAuditPacket(workspace: Workspace, harnessBundle: HarnessBun
 
 export function generateAuditExportFiles(workspace: Workspace, harnessBundle: HarnessBundle): AuditExportFile[] {
   const packet = buildAuditPacket(workspace, harnessBundle);
+  const readiness = calculateVerificationReadiness(workspace);
   const approvedProperties = workspace.properties.filter((property) =>
     packet.approvedClaims.some((claim) => claim.id === property.claimId)
   );
 
   return [
-    markdownFile("proofboard-report.md", reportMarkdown(workspace, packet, approvedProperties)),
+    markdownFile("proofboard-report.md", reportMarkdown(workspace, packet, approvedProperties, readiness)),
     jsonFile("proofboard-ledger.json", {
       properties: workspace.properties,
       evidence: workspace.evidence,
       verificationRuns: workspace.verificationRuns,
-      assumptions: workspace.assumptions
+      assumptions: workspace.assumptions,
+      verificationReadiness: readiness
     }),
+    jsonFile("verification-readiness.json", readiness),
     markdownFile("assumption-debt.md", assumptionDebtMarkdown(workspace.assumptions)),
     jsonFile("protocol-map.json", workspace.protocolMap),
     jsonFile("approved-properties.json", approvedProperties),
     jsonFile("generated-foundry-invariants.json", harnessBundle),
-    markdownFile("audit-prep.md", auditPrepMarkdown(packet))
+    markdownFile("audit-prep.md", auditPrepMarkdown(packet, readiness))
   ];
 }
 
-function reportMarkdown(workspace: Workspace, packet: AuditPacket, approvedProperties: Property[]) {
+function reportMarkdown(workspace: Workspace, packet: AuditPacket, approvedProperties: Property[], readiness: VerificationReadiness) {
   return `# ProofBoard Assurance Report
 
 Workspace: ${workspace.name || workspace.id}
 Protocol type: ${workspace.protocolType}
 
 ProofBoard separates generated intent, human-reviewed claims, candidate properties, assumptions, and verification evidence. This report is not a safety guarantee.
+
+## Verification readiness
+Score: ${readiness.score}/100 (${readiness.label})
+
+${readiness.disclaimer}
+
+${lines(readiness.factors.map((factor) => `${factor.label}: ${factor.score}/100 - ${factor.summary}`))}
 
 ## Approved or edited claims
 ${lines(packet.approvedClaims.map((claim) => `${claim.id}: ${claim.text}`))}
@@ -94,8 +105,15 @@ ${assumptions
   .join("\n")}`;
 }
 
-function auditPrepMarkdown(packet: AuditPacket) {
+function auditPrepMarkdown(packet: AuditPacket, readiness: VerificationReadiness) {
   return `# Audit Prep
+
+## Verification readiness
+${readiness.score}/100 (${readiness.label})
+
+${readiness.disclaimer}
+
+${lines(readiness.nextActions)}
 
 ## Suggested focus areas
 ${lines(packet.suggestedAuditFocus)}

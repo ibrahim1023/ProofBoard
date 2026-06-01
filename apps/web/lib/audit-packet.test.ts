@@ -10,6 +10,7 @@ describe("audit packet export", () => {
     expect(files.map((file) => file.name)).toEqual([
       "proofboard-report.md",
       "proofboard-ledger.json",
+      "verification-readiness.json",
       "assumption-debt.md",
       "protocol-map.json",
       "approved-properties.json",
@@ -27,5 +28,7 @@ describe("audit packet export", () => {
     expect(packet.unresolvedRisks.join("\n")).toContain("Underlying token does not rebase");
     expect(packet.suggestedAuditFocus.length).toBeGreaterThan(0);
     expect(prep?.content).toContain("Unresolved assumptions and out-of-scope areas");
+    expect(prep?.content).toContain("Verification readiness");
+    expect(prep?.content).toContain("not a safety score");
   });
 });

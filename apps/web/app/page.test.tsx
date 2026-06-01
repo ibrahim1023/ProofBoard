@@ -93,6 +93,8 @@ describe("ProofBoard workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Ledger" }));
 
     expect(screen.getByText("Evidence over confidence")).toBeInTheDocument();
+    expect(screen.getByLabelText("Verification readiness")).toBeInTheDocument();
+    expect(screen.getByText(/not a safety score/)).toBeInTheDocument();
     expect(screen.getByText("weak evidence")).toBeInTheDocument();
     expect(screen.getAllByText("critical").length).toBeGreaterThan(0);
     expect(screen.getByText("weak_or_vacuous")).toBeInTheDocument();
@@ -203,6 +205,7 @@ Sequence: handler.deposit(1 ether, alice)`
     fireEvent.click(screen.getByRole("button", { name: "Export" }));
 
     expect(screen.getByRole("button", { name: /proofboard-report\.md/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /verification-readiness\.json/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /generated-foundry-invariants\.json/ })).toBeInTheDocument();
     expect(screen.getByText(/suggested audit focus separately/i)).toBeInTheDocument();
   });

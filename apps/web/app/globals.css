@@ -136,7 +136,7 @@ button {
 .summary-strip {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
 }
 
 .metric {
@@ -456,6 +456,81 @@ textarea {
   padding: 6px 8px;
 }
 
+.readiness-panel {
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(180px, 0.3fr) minmax(0, 1fr);
+  padding: 16px;
+}
+
+.readiness-panel.compact {
+  grid-template-columns: minmax(180px, 0.25fr) minmax(0, 1fr);
+}
+
+.readiness-score {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+}
+
+.readiness-score span,
+.readiness-detail p,
+.readiness-factor span,
+.readiness-actions span {
+  color: var(--muted);
+}
+
+.readiness-score strong {
+  font-size: 2rem;
+}
+
+.readiness-detail {
+  display: grid;
+  gap: 12px;
+}
+
+.readiness-detail p {
+  line-height: 1.5;
+  margin: 0;
+}
+
+.readiness-factors {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.readiness-factor {
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.readiness-factor div {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.readiness-factor progress {
+  accent-color: var(--accent);
+  height: 10px;
+  width: 100%;
+}
+
+.readiness-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.readiness-actions span {
+  border-left: 3px solid var(--amber);
+  padding: 7px 10px;
+}
+
 .harness-layout {
   display: grid;
   gap: 14px;
@@ -542,6 +617,15 @@ textarea {
   }
 
   .property-row {
+    grid-template-columns: 1fr;
+  }
+
+  .readiness-panel,
+  .readiness-panel.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .readiness-factors {
     grid-template-columns: 1fr;
   }
 

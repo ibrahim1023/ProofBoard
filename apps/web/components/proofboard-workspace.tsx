@@ -16,6 +16,7 @@ import {
 } from "@proofboard/property-engine";
 import { generateAuditExportFiles } from "@/lib/audit-packet";
 import { completedDemoWorkspace, demoFoundryOutput, demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
+import { calculateVerificationReadiness, type VerificationReadiness } from "@/lib/readiness";
 import type { Assumption, AssumptionStatus, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
 
 const boardItems: Array<{ id: BoardId; label: string }> = [
@@ -88,6 +89,7 @@ export function ProofboardWorkspace() {
     assumptionFilter === "All" ? true : assumption.status === assumptionFilter
   );
   const harnessBundle = useMemo(() => generateFoundryHarnessBundle(workspace), [workspace]);
+  const readiness = useMemo(() => calculateVerificationReadiness(workspace), [workspace]);
   const runnerPlan = useMemo(
     () =>
       createFoundryRunPlan(workspace, harnessBundle, {
@@ -330,6 +332,7 @@ export function ProofboardWorkspace() {
             <Metric label="Claims approved" value={approvedClaims} />
             <Metric label="Properties" value={workspace.properties.length} />
             <Metric label="Open assumptions" value={openAssumptions} />
+            <Metric label="Readiness" value={readiness.score} suffix="%" />
           </div>
         </header>
 
@@ -683,6 +686,7 @@ export function ProofboardWorkspace() {
               <p className="eyebrow">Evidence over confidence</p>
               <h3>Verification Ledger</h3>
             </div>
+            <ReadinessPanel readiness={readiness} />
             <div className="ledger-table">
               <div className="ledger-head">
                 <span>Property</span>
@@ -871,6 +875,7 @@ export function ProofboardWorkspace() {
               <p className="eyebrow">Audit prep packet</p>
               <h3>Export</h3>
             </div>
+            <ReadinessPanel readiness={readiness} compact />
             <div className="export-grid">
               {auditFiles.map((file) => (
                 <button
@@ -905,12 +910,46 @@ interface RunnerApiResponse {
   };
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value, suffix = "" }: { label: string; value: number; suffix?: string }) {
   return (
     <div className="metric">
-      <strong>{value}</strong>
+      <strong>{value}{suffix}</strong>
       <span>{label}</span>
     </div>
+  );
+}
+
+function ReadinessPanel({ readiness, compact = false }: { readiness: VerificationReadiness; compact?: boolean }) {
+  return (
+    <section className={compact ? "readiness-panel compact" : "readiness-panel"} aria-label="Verification readiness">
+      <div className="readiness-score">
+        <span>Verification readiness</span>
+        <strong>{readiness.score}%</strong>
+        <StatusPill label={readiness.label} />
+      </div>
+      <div className="readiness-detail">
+        <p>{readiness.disclaimer}</p>
+        {!compact && (
+          <div className="readiness-factors">
+            {readiness.factors.map((factor) => (
+              <div className="readiness-factor" key={factor.id}>
+                <div>
+                  <strong>{factor.label}</strong>
+                  <span>{factor.score}%</span>
+                </div>
+                <progress max="100" value={factor.score}>{factor.score}%</progress>
+                <span>{factor.summary}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="readiness-actions">
+          {(readiness.blockers.length > 0 ? readiness.blockers : readiness.nextActions.slice(0, 3)).map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
