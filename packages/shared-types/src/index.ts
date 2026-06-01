@@ -228,6 +228,11 @@ export interface Assumption {
   whyItMatters: string;
   status: AssumptionStatus;
   severity: Severity;
+  owner?: string;
+  rationale?: string;
+  revisitBy?: string;
+  mitigation?: string;
+  acceptedRiskJustification?: string;
   relatedProperties: string[];
   relatedFunctions: string[];
 }

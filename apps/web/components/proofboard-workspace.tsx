@@ -48,6 +48,7 @@ const assumptionStatusOptions: AssumptionStatus[] = [
   "Mitigated in code",
   "Out of scope"
 ];
+type AssumptionReviewField = "owner" | "rationale" | "revisitBy" | "mitigation" | "acceptedRiskJustification";
 
 const boundaryItems: Array<{ label: string; kind: BoundaryKind }> = [
   { label: "Inferred", kind: "inferred" },
@@ -228,6 +229,13 @@ export function ProofboardWorkspace() {
     setWorkspace((current) => ({
       ...current,
       assumptions: current.assumptions.map((assumption) => (assumption.id === assumptionId ? { ...assumption, status } : assumption))
+    }));
+  }
+
+  function updateAssumptionReviewField(assumptionId: string, field: AssumptionReviewField, value: string) {
+    setWorkspace((current) => ({
+      ...current,
+      assumptions: current.assumptions.map((assumption) => (assumption.id === assumptionId ? { ...assumption, [field]: value } : assumption))
     }));
   }
 
@@ -670,6 +678,49 @@ export function ProofboardWorkspace() {
                     </div>
                     <p>{assumption.whyItMatters}</p>
                     <span>Severity: {assumption.severity}</span>
+                    <div className="assumption-review-grid">
+                      <label>
+                        Owner
+                        <input
+                          onChange={(event) => updateAssumptionReviewField(assumption.id, "owner", event.target.value)}
+                          placeholder="Reviewer or team"
+                          value={assumption.owner ?? ""}
+                        />
+                      </label>
+                      <label>
+                        Revisit date
+                        <input
+                          onChange={(event) => updateAssumptionReviewField(assumption.id, "revisitBy", event.target.value)}
+                          placeholder="YYYY-MM-DD"
+                          type="date"
+                          value={assumption.revisitBy ?? ""}
+                        />
+                      </label>
+                      <label>
+                        Rationale
+                        <textarea
+                          onChange={(event) => updateAssumptionReviewField(assumption.id, "rationale", event.target.value)}
+                          placeholder="Why this assumption exists"
+                          value={assumption.rationale ?? ""}
+                        />
+                      </label>
+                      <label>
+                        Mitigation
+                        <textarea
+                          onChange={(event) => updateAssumptionReviewField(assumption.id, "mitigation", event.target.value)}
+                          placeholder="Evidence, test, code change, or review step"
+                          value={assumption.mitigation ?? ""}
+                        />
+                      </label>
+                      <label className="wide-field">
+                        Accepted-risk justification
+                        <textarea
+                          onChange={(event) => updateAssumptionReviewField(assumption.id, "acceptedRiskJustification", event.target.value)}
+                          placeholder="Required when this becomes accepted risk"
+                          value={assumption.acceptedRiskJustification ?? ""}
+                        />
+                      </label>
+                    </div>
                     <span>Functions: {assumption.relatedFunctions.length > 0 ? assumption.relatedFunctions.join(", ") : "Unlinked"}</span>
                     <span>Properties: {assumption.relatedProperties.length > 0 ? assumption.relatedProperties.join(", ") : "Unlinked"}</span>
                     <label className="compact-label">

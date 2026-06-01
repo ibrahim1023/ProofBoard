@@ -203,7 +203,8 @@ button {
 .export-grid,
 .analysis-grid,
 .results-grid,
-.llm-boundary {
+.llm-boundary,
+.assumption-review-grid {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -254,6 +255,14 @@ textarea {
 
 .claim-editor {
   min-height: 112px;
+}
+
+.assumption-review-grid textarea {
+  min-height: 76px;
+}
+
+.wide-field {
+  grid-column: 1 / -1;
 }
 
 .code-preview {
@@ -686,7 +695,8 @@ textarea {
   .export-grid,
   .analysis-grid,
   .results-grid,
-  .llm-boundary {
+  .llm-boundary,
+  .assumption-review-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -721,7 +731,8 @@ textarea {
   .export-grid,
   .analysis-grid,
   .results-grid,
-  .llm-boundary {
+  .llm-boundary,
+  .assumption-review-grid {
     grid-template-columns: 1fr;
   }
 }

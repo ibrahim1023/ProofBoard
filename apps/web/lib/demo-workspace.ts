@@ -279,6 +279,10 @@ export const demoWorkspace: Workspace = {
       whyItMatters: "Fee-on-transfer, missing return values, or callback behavior can invalidate share accounting evidence.",
       status: "Needs test",
       severity: "high",
+      owner: "Verification lead",
+      rationale: "The current harness uses a standard token mock, so non-standard token behavior still needs explicit coverage.",
+      revisitBy: "2026-06-15",
+      mitigation: "Add fee-on-transfer and callback token tests before public demo.",
       relatedProperties: ["property_redeemable_assets", "property_deposit_mint_consistency"],
       relatedFunctions: ["deposit", "withdraw"]
     },
@@ -288,6 +292,10 @@ export const demoWorkspace: Workspace = {
       whyItMatters: "Rebases can change vault balances without deposits or withdrawals.",
       status: "Unresolved",
       severity: "medium",
+      owner: "Protocol engineer",
+      rationale: "The supported asset list is not yet documented in the workspace notes.",
+      revisitBy: "2026-06-20",
+      mitigation: "Confirm asset policy and add rebasing-token evidence if rebasing assets are in scope.",
       relatedProperties: ["property_redeemable_assets"],
       relatedFunctions: ["deposit", "withdraw"]
     },
@@ -297,6 +305,11 @@ export const demoWorkspace: Workspace = {
       whyItMatters: "Pause and fee controls are privileged paths that can affect availability and user trust.",
       status: "Accepted risk",
       severity: "medium",
+      owner: "Protocol governance",
+      rationale: "Emergency pause and fee routing are intentionally admin-controlled.",
+      revisitBy: "2026-07-01",
+      mitigation: "Keep admin policy and multisig/timelock details in the audit packet.",
+      acceptedRiskJustification: "The team accepts this risk only if the deployed admin path matches the documented emergency policy.",
       relatedProperties: ["property_pause_behavior"],
       relatedFunctions: ["pause", "setFeeRecipient"]
     }

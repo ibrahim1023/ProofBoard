@@ -85,9 +85,22 @@ describe("ProofBoard workspace", () => {
 
     fireEvent.change(screen.getByLabelText("Filter"), { target: { value: "Accepted risk" } });
     expect(screen.getByText("Admin actions follow the documented emergency policy.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Owner")).toHaveValue("Protocol governance");
+    expect(screen.getByLabelText("Accepted-risk justification")).toHaveValue(
+      "The team accepts this risk only if the deployed admin path matches the documented emergency policy."
+    );
+
+    fireEvent.change(screen.getByLabelText("Owner"), { target: { value: "Security council" } });
+    fireEvent.change(screen.getByLabelText("Accepted-risk justification"), {
+      target: { value: "Risk accepted for demo only; production deployment needs governance evidence." }
+    });
+    expect(screen.getByLabelText("Owner")).toHaveValue("Security council");
+    expect(screen.getByLabelText("Accepted-risk justification")).toHaveValue(
+      "Risk accepted for demo only; production deployment needs governance evidence."
+    );
 
     fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Out of scope" } });
-    expect(screen.getByText("Out of scope")).toBeInTheDocument();
+    expect(screen.getByText("No assumptions recorded yet.")).toBeInTheDocument();
   });
 
   it("renders verification ledger evidence and risk details", () => {

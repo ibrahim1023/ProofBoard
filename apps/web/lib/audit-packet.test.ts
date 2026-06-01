@@ -30,5 +30,8 @@ describe("audit packet export", () => {
     expect(prep?.content).toContain("Unresolved assumptions and out-of-scope areas");
     expect(prep?.content).toContain("Verification readiness");
     expect(prep?.content).toContain("not a safety score");
+    expect(generateAuditExportFiles(demoWorkspace, bundle).find((file) => file.name === "assumption-debt.md")?.content).toContain(
+      "Owner: Protocol governance"
+    );
   });
 });

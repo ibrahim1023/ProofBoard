@@ -27,6 +27,9 @@ export function calculateVerificationReadiness(workspace: Workspace): Verificati
   const evidencedProperties = workspace.properties.filter((property) => property.evidence.length > 0);
   const mediumOrStrongEvidence = workspace.evidence.filter((evidence) => evidenceRank(evidence.strength) >= evidenceRank("medium"));
   const unresolvedAssumptions = workspace.assumptions.filter(isUnresolvedAssumption);
+  const undocumentedAcceptedRisk = workspace.assumptions.filter(
+    (assumption) => assumption.status === "Accepted risk" && !assumption.acceptedRiskJustification?.trim()
+  );
   const failedProperties = workspace.properties.filter((property) => property.verificationLevel === "fuzzed_failed");
   const weakProperties = workspace.properties.filter(
     (property) => property.verificationLevel === "weak_or_vacuous" || property.skepticStatus === "Weak" || property.skepticStatus === "Vacuous"
@@ -78,8 +81,8 @@ export function calculateVerificationReadiness(workspace: Workspace): Verificati
     score,
     label: readinessLabel(score),
     factors,
-    blockers: readinessBlockers(workspace, unresolvedAssumptions, failedProperties, weakProperties),
-    nextActions: readinessNextActions(factors, unresolvedAssumptions, weakProperties),
+    blockers: readinessBlockers(workspace, unresolvedAssumptions, undocumentedAcceptedRisk, failedProperties, weakProperties),
+    nextActions: readinessNextActions(factors, unresolvedAssumptions, undocumentedAcceptedRisk, weakProperties),
     disclaimer
   };
 }
@@ -123,6 +126,7 @@ function assumptionDebtScore(assumptions: Assumption[]) {
 function readinessBlockers(
   workspace: Workspace,
   unresolvedAssumptions: Assumption[],
+  undocumentedAcceptedRisk: Assumption[],
   failedProperties: Property[],
   weakProperties: Property[]
 ) {
@@ -144,6 +148,10 @@ function readinessBlockers(
     blockers.push("High-severity assumption debt remains unresolved.");
   }
 
+  if (undocumentedAcceptedRisk.length > 0) {
+    blockers.push("Accepted-risk assumptions need explicit justification.");
+  }
+
   if (failedProperties.length > 0) {
     blockers.push("Failed fuzz evidence needs implementation review, property review, or documented remediation.");
   }
@@ -155,7 +163,12 @@ function readinessBlockers(
   return blockers;
 }
 
-function readinessNextActions(factors: ReadinessFactor[], unresolvedAssumptions: Assumption[], weakProperties: Property[]) {
+function readinessNextActions(
+  factors: ReadinessFactor[],
+  unresolvedAssumptions: Assumption[],
+  undocumentedAcceptedRisk: Assumption[],
+  weakProperties: Property[]
+) {
   const actions = factors
     .filter((factor) => factor.score < 80)
     .map((factor) => {
@@ -177,6 +190,7 @@ function readinessNextActions(factors: ReadinessFactor[], unresolvedAssumptions:
   return unique([
     ...actions,
     ...unresolvedAssumptions.slice(0, 3).map((assumption) => `Resolve assumption ${assumption.id}: ${assumption.status}.`),
+    ...undocumentedAcceptedRisk.slice(0, 3).map((assumption) => `Document accepted-risk justification for ${assumption.id}.`),
     ...weakProperties.slice(0, 3).map((property) => `Strengthen property ${property.id}: ${property.nextAction}`)
   ]).slice(0, 8);
 }

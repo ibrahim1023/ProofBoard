@@ -96,6 +96,11 @@ ${assumptions
 
 - Status: ${assumption.status}
 - Severity: ${assumption.severity}
+- Owner: ${assumption.owner || "Unassigned"}
+- Rationale: ${assumption.rationale || "None recorded."}
+- Revisit by: ${assumption.revisitBy || "Not scheduled"}
+- Mitigation: ${assumption.mitigation || "None recorded."}
+- Accepted-risk justification: ${assumption.acceptedRiskJustification || "None recorded."}
 - Assumption: ${assumption.text}
 - Why it matters: ${assumption.whyItMatters}
 - Related properties: ${assumption.relatedProperties.join(", ") || "Unlinked"}
