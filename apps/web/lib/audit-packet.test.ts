@@ -11,6 +11,7 @@ describe("audit packet export", () => {
       "proofboard-report.md",
       "proofboard-ledger.json",
       "verification-readiness.json",
+      "harness-quality.json",
       "assumption-debt.md",
       "protocol-map.json",
       "approved-properties.json",
@@ -29,6 +30,7 @@ describe("audit packet export", () => {
     expect(packet.suggestedAuditFocus.length).toBeGreaterThan(0);
     expect(prep?.content).toContain("Unresolved assumptions and out-of-scope areas");
     expect(prep?.content).toContain("Verification readiness");
+    expect(prep?.content).toContain("Harness quality");
     expect(prep?.content).toContain("not a safety score");
     expect(generateAuditExportFiles(demoWorkspace, bundle).find((file) => file.name === "assumption-debt.md")?.content).toContain(
       "Owner: Protocol governance"

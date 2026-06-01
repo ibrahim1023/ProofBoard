@@ -16,6 +16,7 @@ import {
 } from "@proofboard/property-engine";
 import { generateAuditExportFiles } from "@/lib/audit-packet";
 import { completedDemoWorkspace, demoFoundryOutput, demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
+import { assessHarnessQuality, type HarnessQualityReport } from "@/lib/harness-quality";
 import { calculateVerificationReadiness, type VerificationReadiness } from "@/lib/readiness";
 import type { Assumption, AssumptionStatus, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
 
@@ -111,6 +112,7 @@ export function ProofboardWorkspace() {
     [harnessBundle, runnerDockerImage, runnerMode, runnerProjectPath, workspace]
   );
   const auditFiles = useMemo(() => generateAuditExportFiles(workspace, harnessBundle), [harnessBundle, workspace]);
+  const harnessQuality = useMemo(() => assessHarnessQuality(workspace, harnessBundle), [harnessBundle, workspace]);
   const selectedHarnessFile = harnessBundle.files.find((file) => file.path === selectedHarnessPath) ?? harnessBundle.files[0];
 
   function updateField(field: "name" | "description" | "solidity", value: string) {
@@ -811,6 +813,7 @@ export function ProofboardWorkspace() {
               </button>
               <code>{harnessBundle.suggestedCommand}</code>
             </div>
+            <HarnessQualityPanel report={harnessQuality} />
             <div className="harness-layout">
               <div className="harness-file-list" aria-label="Generated harness files">
                 {harnessBundle.files.map((file) => (
@@ -1029,6 +1032,29 @@ function ReadinessPanel({ readiness, compact = false }: { readiness: Verificatio
   );
 }
 
+function HarnessQualityPanel({ report }: { report: HarnessQualityReport }) {
+  return (
+    <section className="harness-quality" aria-label="Harness quality checks">
+      <div className="harness-quality-score">
+        <span>Harness quality</span>
+        <strong>{report.score}%</strong>
+      </div>
+      <div className="harness-quality-grid">
+        {report.checks.map((check) => (
+          <article className="harness-quality-check" key={check.id}>
+            <div>
+              <strong>{check.label}</strong>
+              <StatusPill label={check.status} />
+            </div>
+            <p>{check.summary}</p>
+            <span>{check.nextAction}</span>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PrinciplePanel() {
   return (
     <aside className="section-block principle-panel">
@@ -1152,7 +1178,7 @@ function boundaryKind(label: string): BoundaryKind {
     return "approved";
   }
 
-  if (["draft", "generated", "test generated", "scaffold code", "needs work", "not ready"].includes(normalized)) {
+  if (["draft", "generated", "test generated", "scaffold code", "scaffolded", "needs work", "not ready"].includes(normalized)) {
     return "generated";
   }
 
@@ -1160,7 +1186,7 @@ function boundaryKind(label: string): BoundaryKind {
     return "executed";
   }
 
-  if (["fuzzed failed", "failed", "errored", "critical"].includes(normalized)) {
+  if (["fuzzed failed", "failed", "errored", "critical", "missing"].includes(normalized)) {
     return "failed";
   }
 
@@ -1179,11 +1205,11 @@ function boundaryKind(label: string): BoundaryKind {
     return "assumption";
   }
 
-  if (["accepted risk", "out of scope", "mitigated in code"].includes(normalized)) {
+  if (["accepted risk", "out of scope", "mitigated in code", "not-applicable"].includes(normalized)) {
     return "accepted";
   }
 
-  if (["weak", "vacuous", "weak or vacuous"].includes(normalized)) {
+  if (["weak", "vacuous", "weak or vacuous", "partial"].includes(normalized)) {
     return "weak";
   }
 

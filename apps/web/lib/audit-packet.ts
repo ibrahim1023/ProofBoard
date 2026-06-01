@@ -1,5 +1,6 @@
 import type { AuditPacket, Assumption, Property, Workspace } from "@proofboard/shared-types";
 import type { HarnessBundle } from "@proofboard/harness-generator";
+import { assessHarnessQuality, type HarnessQualityReport } from "./harness-quality";
 import { calculateVerificationReadiness, type VerificationReadiness } from "./readiness";
 
 export interface AuditExportFile {
@@ -31,6 +32,7 @@ export function buildAuditPacket(workspace: Workspace, harnessBundle: HarnessBun
 export function generateAuditExportFiles(workspace: Workspace, harnessBundle: HarnessBundle): AuditExportFile[] {
   const packet = buildAuditPacket(workspace, harnessBundle);
   const readiness = calculateVerificationReadiness(workspace);
+  const harnessQuality = assessHarnessQuality(workspace, harnessBundle);
   const approvedProperties = workspace.properties.filter((property) =>
     packet.approvedClaims.some((claim) => claim.id === property.claimId)
   );
@@ -45,11 +47,12 @@ export function generateAuditExportFiles(workspace: Workspace, harnessBundle: Ha
       verificationReadiness: readiness
     }),
     jsonFile("verification-readiness.json", readiness),
+    jsonFile("harness-quality.json", harnessQuality),
     markdownFile("assumption-debt.md", assumptionDebtMarkdown(workspace.assumptions)),
     jsonFile("protocol-map.json", workspace.protocolMap),
     jsonFile("approved-properties.json", approvedProperties),
     jsonFile("generated-foundry-invariants.json", harnessBundle),
-    markdownFile("audit-prep.md", auditPrepMarkdown(packet, readiness))
+    markdownFile("audit-prep.md", auditPrepMarkdown(packet, readiness, harnessQuality))
   ];
 }
 
@@ -110,7 +113,7 @@ ${assumptions
   .join("\n")}`;
 }
 
-function auditPrepMarkdown(packet: AuditPacket, readiness: VerificationReadiness) {
+function auditPrepMarkdown(packet: AuditPacket, readiness: VerificationReadiness, harnessQuality: HarnessQualityReport) {
   return `# Audit Prep
 
 ## Verification readiness
@@ -119,6 +122,11 @@ ${readiness.score}/100 (${readiness.label})
 ${readiness.disclaimer}
 
 ${lines(readiness.nextActions)}
+
+## Harness quality
+${harnessQuality.score}/100
+
+${lines(harnessQuality.checks.map((check) => `${check.label}: ${check.status} - ${check.nextAction}`))}
 
 ## Suggested focus areas
 ${lines(packet.suggestedAuditFocus)}

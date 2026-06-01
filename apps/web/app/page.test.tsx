@@ -124,6 +124,10 @@ describe("ProofBoard workspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Harness" }));
 
+    expect(screen.getByLabelText("Harness quality checks")).toBeInTheDocument();
+    expect(screen.getByText("Deposit flow")).toBeInTheDocument();
+    expect(screen.getByText("Adversarial token mocks")).toBeInTheDocument();
+    expect(screen.getAllByText("missing").length).toBeGreaterThan(0);
     expect(screen.getByText("forge test --match-contract ProofboardVaultInvariant")).toBeInTheDocument();
     expect(screen.getAllByText("test/invariants/ProofboardVaultInvariant.t.sol").length).toBeGreaterThan(0);
     expect(screen.getByText("test/invariants/handlers/VaultHandler.sol")).toBeInTheDocument();
