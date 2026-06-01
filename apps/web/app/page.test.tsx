@@ -13,6 +13,9 @@ describe("ProofBoard workspace", () => {
 
     expect(screen.getByRole("heading", { name: "ProofBoard" })).toBeInTheDocument();
     expect(screen.getAllByText("ExampleVault Assurance")).toHaveLength(2);
+    expect(screen.getByLabelText("Evidence boundary")).toBeInTheDocument();
+    expect(screen.getByText("Inferred")).toBeInTheDocument();
+    expect(screen.getByText("Failed evidence")).toBeInTheDocument();
     expect(screen.getByText("Repo zip upload placeholder")).toBeInTheDocument();
   });
 
@@ -88,7 +91,7 @@ describe("ProofBoard workspace", () => {
   });
 
   it("renders verification ledger evidence and risk details", () => {
-    render(<Home />);
+    const { container } = render(<Home />);
 
     fireEvent.click(screen.getByRole("button", { name: "Ledger" }));
 
@@ -98,6 +101,9 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByText("weak evidence")).toBeInTheDocument();
     expect(screen.getAllByText("critical").length).toBeGreaterThan(0);
     expect(screen.getByText("weak_or_vacuous")).toBeInTheDocument();
+    expect(container.querySelector('[data-boundary="inferred"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-boundary="assumption"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-boundary="failed"]')).toBeInTheDocument();
   });
 
   it("renders generated Foundry harness files and command", () => {

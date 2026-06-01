@@ -49,6 +49,16 @@ const assumptionStatusOptions: AssumptionStatus[] = [
   "Out of scope"
 ];
 
+const boundaryItems: Array<{ label: string; kind: BoundaryKind }> = [
+  { label: "Inferred", kind: "inferred" },
+  { label: "Human-approved", kind: "approved" },
+  { label: "Generated", kind: "generated" },
+  { label: "Executed evidence", kind: "executed" },
+  { label: "Failed evidence", kind: "failed" },
+  { label: "Assumption debt", kind: "assumption" },
+  { label: "Accepted / out of scope", kind: "accepted" }
+];
+
 export function ProofboardWorkspace() {
   const [workspace, setWorkspace] = useState<Workspace>(demoWorkspace);
   const [activeBoard, setActiveBoard] = useState<BoardId>("upload");
@@ -335,6 +345,8 @@ export function ProofboardWorkspace() {
             <Metric label="Readiness" value={readiness.score} suffix="%" />
           </div>
         </header>
+
+        <EvidenceBoundaryLegend />
 
         {activeBoard === "upload" && (
           <section className="workspace-grid">
@@ -720,7 +732,7 @@ export function ProofboardWorkspace() {
                     </div>
                     <div className="ledger-cell">
                       <span>{assumptions.length} linked</span>
-                      <span>{assumptions.map((assumption) => assumption.status).join(", ") || "None"}</span>
+                      <InlinePills labels={assumptions.map((assumption) => assumption.status)} empty="None" />
                     </div>
                     <StatusPill label={property.risk} />
                     <span>{property.nextAction}</span>
@@ -919,6 +931,19 @@ function Metric({ label, value, suffix = "" }: { label: string; value: number; s
   );
 }
 
+function EvidenceBoundaryLegend() {
+  return (
+    <div className="boundary-legend" aria-label="Evidence boundary">
+      <strong>Evidence boundary</strong>
+      <div>
+        {boundaryItems.map((item) => (
+          <StatusPill key={item.kind} label={item.label} kind={item.kind} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ReadinessPanel({ readiness, compact = false }: { readiness: VerificationReadiness; compact?: boolean }) {
   return (
     <section className={compact ? "readiness-panel compact" : "readiness-panel"} aria-label="Verification readiness">
@@ -982,8 +1007,24 @@ function TreeGroup({ title, items, empty }: { title: string; items: string[]; em
   );
 }
 
-function StatusPill({ label }: { label: string }) {
-  return <span className="status-pill">{label}</span>;
+function InlinePills({ labels, empty }: { labels: string[]; empty: string }) {
+  return labels.length === 0 ? (
+    <span>{empty}</span>
+  ) : (
+    <span className="inline-pill-list">
+      {labels.map((label) => (
+        <StatusPill key={label} label={label} />
+      ))}
+    </span>
+  );
+}
+
+function StatusPill({ label, kind = boundaryKind(label) }: { label: string; kind?: BoundaryKind }) {
+  return (
+    <span className={`status-pill status-${kind}`} data-boundary={kind}>
+      {label}
+    </span>
+  );
 }
 
 function EmptyState({ text }: { text: string }) {
@@ -1035,4 +1076,69 @@ function evidenceRank(strength: Workspace["evidence"][number]["strength"]) {
     medium: 2,
     strong: 3
   }[strength];
+}
+
+type BoundaryKind =
+  | "inferred"
+  | "approved"
+  | "generated"
+  | "executed"
+  | "failed"
+  | "assumption"
+  | "accepted"
+  | "weak"
+  | "risk"
+  | "neutral";
+
+function boundaryKind(label: string): BoundaryKind {
+  const normalized = label.toLowerCase().replaceAll("_", " ");
+
+  if (["ai-inferred", "ai inferred", "claimed only", "local adapter boundary", "optional hosted boundary"].includes(normalized)) {
+    return "inferred";
+  }
+
+  if (["human-approved", "human approved", "edited", "approved", "strong prep", "reviewable"].includes(normalized)) {
+    return "approved";
+  }
+
+  if (["draft", "generated", "test generated", "scaffold code", "needs work", "not ready"].includes(normalized)) {
+    return "generated";
+  }
+
+  if (["fuzzed passed", "passed", "symbolically checked", "formally proven"].includes(normalized)) {
+    return "executed";
+  }
+
+  if (["fuzzed failed", "failed", "errored", "critical"].includes(normalized)) {
+    return "failed";
+  }
+
+  if (
+    [
+      "unresolved",
+      "needs test",
+      "needs invariant",
+      "needs symbolic check",
+      "needs formal proof",
+      "needs stronger actor model",
+      "needs adversarial mock",
+      "needs human review"
+    ].includes(normalized)
+  ) {
+    return "assumption";
+  }
+
+  if (["accepted risk", "out of scope", "mitigated in code"].includes(normalized)) {
+    return "accepted";
+  }
+
+  if (["weak", "vacuous", "weak or vacuous"].includes(normalized)) {
+    return "weak";
+  }
+
+  if (["low", "medium", "high"].includes(normalized)) {
+    return "risk";
+  }
+
+  return "neutral";
 }

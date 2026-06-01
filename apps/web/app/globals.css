@@ -11,6 +11,8 @@
   --amber: #b7791f;
   --red: #b42318;
   --green: #1f7a4d;
+  --blue: #2563eb;
+  --violet: #6d28d9;
 }
 
 * {
@@ -154,6 +156,23 @@ button {
 .metric span {
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.boundary-legend {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.boundary-legend > div,
+.inline-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .workspace-grid {
@@ -375,12 +394,67 @@ textarea {
 .status-pill {
   background: #e7f5f2;
   color: var(--accent-strong);
+  border: 1px solid transparent;
   display: inline-flex;
   font-size: 0.78rem;
   font-weight: 800;
   justify-content: center;
   padding: 5px 8px;
   white-space: nowrap;
+}
+
+.status-inferred {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+
+.status-approved {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+  color: var(--green);
+}
+
+.status-generated {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: var(--blue);
+}
+
+.status-executed {
+  background: #e7f5f2;
+  border-color: #99f6e4;
+  color: var(--accent-strong);
+}
+
+.status-failed {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: var(--red);
+}
+
+.status-assumption {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: var(--amber);
+}
+
+.status-accepted {
+  background: #f4f4f5;
+  border-color: #d4d4d8;
+  color: #52525b;
+}
+
+.status-weak {
+  background: #faf5ff;
+  border-color: #e9d5ff;
+  color: var(--violet);
+}
+
+.status-risk {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
 }
 
 .property-row {
