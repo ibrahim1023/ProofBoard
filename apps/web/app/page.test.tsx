@@ -235,6 +235,8 @@ Sequence: handler.deposit(1 ether, alice)`
     fireEvent.click(screen.getByRole("button", { name: "Export" }));
 
     expect(screen.getByRole("button", { name: /proofboard-report\.md/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /executive-summary\.md/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /auditor-questions\.md/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /verification-readiness\.json/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /generated-foundry-invariants\.json/ })).toBeInTheDocument();
     expect(screen.getByText(/suggested audit focus separately/i)).toBeInTheDocument();
