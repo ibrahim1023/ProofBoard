@@ -19,8 +19,8 @@ Every coding-agent session must begin by:
 
 For agent behavior, follow:
 
-1. direct user instruction for the current task
-2. system, developer, and tool constraints
+1. system, developer, and tool constraints
+2. direct user instruction for the current task
 3. nearest applicable `AGENTS.md`
 4. root `AGENTS.md`
 5. `task.md`
