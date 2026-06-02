@@ -3,6 +3,7 @@ import {
   type Workspace,
   validateAssumption,
   validateProperty,
+  validateReviewRecord,
   validateWorkspace
 } from "./index";
 
@@ -88,6 +89,26 @@ const validWorkspace: Workspace = {
       strength: "weak",
       summary: "Claim approved but not fuzzed."
     }
+  ],
+  reviewRecords: [
+    {
+      id: "review_claim_1",
+      targetType: "claim",
+      targetId: "claim_1",
+      action: "approved",
+      reviewer: "Security lead",
+      comment: "Approved as protocol intent for harness generation.",
+      createdAt: "2026-05-19T00:00:00Z"
+    },
+    {
+      id: "review_property_1",
+      targetType: "property",
+      targetId: "property_1",
+      action: "commented",
+      reviewer: "Security lead",
+      comment: "Needs stronger actor coverage before audit handoff.",
+      createdAt: "2026-05-19T00:00:00Z"
+    }
   ]
 };
 
@@ -136,6 +157,15 @@ describe("shared schema validation", () => {
     expect(issues[0]?.path).toBe("assumption.status");
   });
 
+  it("rejects invalid review records", () => {
+    const issues = validateReviewRecord({
+      ...validWorkspace.reviewRecords![0],
+      action: "signed" as never
+    });
+
+    expect(issues[0]?.path).toBe("reviewRecord.action");
+  });
+
   it("rejects broken workspace claim, assumption, property, and evidence links", () => {
     const issues = validateWorkspace({
       ...validWorkspace,
@@ -148,7 +178,8 @@ describe("shared schema validation", () => {
         }
       ],
       assumptions: [{ ...validWorkspace.assumptions[0], relatedProperties: ["property_missing"] }],
-      evidence: [{ ...validWorkspace.evidence[0], propertyId: "property_missing" }]
+      evidence: [{ ...validWorkspace.evidence[0], propertyId: "property_missing" }],
+      reviewRecords: [{ ...validWorkspace.reviewRecords![0], targetId: "claim_missing" }]
     });
 
     expect(issues.map((issue) => issue.path)).toEqual(
@@ -157,7 +188,8 @@ describe("shared schema validation", () => {
         "properties.0.assumptions.0",
         "properties.0.evidence.0",
         "assumptions.0.relatedProperties.0",
-        "evidence.0.propertyId"
+        "evidence.0.propertyId",
+        "reviewRecords.0.targetId"
       ])
     );
   });

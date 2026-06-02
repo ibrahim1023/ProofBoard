@@ -9,6 +9,7 @@ Initial entities:
 - claim
 - property
 - assumption
+- review record
 - verification run
 - evidence record
 - audit packet export

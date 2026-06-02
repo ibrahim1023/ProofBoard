@@ -19,7 +19,17 @@ import { completedDemoWorkspace, demoFoundryOutput, demoWorkspace, emptyWorkspac
 import { assessHarnessQuality, type HarnessQualityReport } from "@/lib/harness-quality";
 import { calculateVerificationReadiness, type VerificationReadiness } from "@/lib/readiness";
 import { assessInvariantVacuity, type VacuityReport } from "@/lib/vacuity";
-import type { Assumption, AssumptionStatus, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
+import type {
+  Assumption,
+  AssumptionStatus,
+  BoardId,
+  Claim,
+  Property,
+  ProtocolType,
+  ReviewAction,
+  ReviewTargetType,
+  Workspace
+} from "@proofboard/shared-types";
 
 const boardItems: Array<{ id: BoardId; label: string }> = [
   { id: "upload", label: "Project" },
@@ -80,6 +90,10 @@ export function ProofboardWorkspace() {
   const [runnerDockerImage, setRunnerDockerImage] = useState("ghcr.io/foundry-rs/foundry:stable");
   const [runnerNotice, setRunnerNotice] = useState<string[]>([]);
   const [runnerBusy, setRunnerBusy] = useState(false);
+  const [reviewerIdentity, setReviewerIdentity] = useState("Security lead");
+  const [claimCommentDrafts, setClaimCommentDrafts] = useState<Record<string, string>>({});
+  const [claimRejectionDrafts, setClaimRejectionDrafts] = useState<Record<string, string>>({});
+  const [propertyCommentDrafts, setPropertyCommentDrafts] = useState<Record<string, string>>({});
   const primarySource = workspace.sources[0];
   const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
 
@@ -195,10 +209,25 @@ export function ProofboardWorkspace() {
   }
 
   function updateClaimStatus(claimId: string, status: Claim["status"]) {
-    setWorkspace((current) => ({
-      ...current,
-      claims: current.claims.map((claim) => (claim.id === claimId ? { ...claim, status } : claim))
-    }));
+    const action: ReviewAction = status === "Rejected" ? "rejected" : status === "Human-approved" ? "approved" : "edited";
+    const note =
+      status === "Rejected"
+        ? claimRejectionDrafts[claimId]?.trim() || "Rejected without a recorded rationale."
+        : `${status} by reviewer.`;
+
+    setWorkspace((current) =>
+      appendReviewRecord(
+        {
+          ...current,
+          claims: current.claims.map((claim) => (claim.id === claimId ? { ...claim, status } : claim))
+        },
+        "claim",
+        claimId,
+        action,
+        reviewerIdentity,
+        note
+      )
+    );
   }
 
   function updateClaimText(claimId: string, text: string) {
@@ -214,6 +243,30 @@ export function ProofboardWorkspace() {
           : claim
       )
     }));
+  }
+
+  function recordClaimEdit(claimId: string, text: string) {
+    setWorkspace((current) => appendReviewRecord(current, "claim", claimId, "edited", reviewerIdentity, `Edited claim text: ${text}`));
+  }
+
+  function addClaimComment(claimId: string) {
+    const comment = claimCommentDrafts[claimId]?.trim();
+    if (!comment) {
+      return;
+    }
+
+    setWorkspace((current) => appendReviewRecord(current, "claim", claimId, "commented", reviewerIdentity, comment));
+    setClaimCommentDrafts((current) => ({ ...current, [claimId]: "" }));
+  }
+
+  function addPropertyComment(propertyId: string) {
+    const comment = propertyCommentDrafts[propertyId]?.trim();
+    if (!comment) {
+      return;
+    }
+
+    setWorkspace((current) => appendReviewRecord(current, "property", propertyId, "commented", reviewerIdentity, comment));
+    setPropertyCommentDrafts((current) => ({ ...current, [propertyId]: "" }));
   }
 
   function generateInvariantProperties() {
@@ -542,6 +595,10 @@ export function ProofboardWorkspace() {
                   ))}
                 </select>
               </label>
+              <label className="compact-label">
+                Reviewer
+                <input onChange={(event) => setReviewerIdentity(event.target.value)} value={reviewerIdentity} />
+              </label>
             </div>
             {claimMode !== "template" && (
               <div className="llm-boundary">
@@ -580,29 +637,55 @@ export function ProofboardWorkspace() {
               {workspace.claims.length === 0 ? (
                 <EmptyState text="No claims yet. ProofBoard will propose claims, but humans approve intent." />
               ) : (
-                workspace.claims.map((claim) => (
-                  <article className="claim-card" key={claim.id}>
-                    <div className="card-title-row">
-                      <strong>{claim.title}</strong>
-                      <StatusPill label={claim.status} />
-                    </div>
-                    <textarea
-                      className="claim-editor"
-                      onChange={(event) => updateClaimText(claim.id, event.target.value)}
-                      value={claim.text}
-                    />
-                    <span>Source: {claim.source.join(", ")}</span>
-                    <span>Confidence: {Math.round(claim.confidence * 100)}% / Severity: {claim.severity}</span>
-                    <div className="inline-actions">
-                      <button type="button" onClick={() => updateClaimStatus(claim.id, "Human-approved")}>
-                        Approve
-                      </button>
-                      <button type="button" onClick={() => updateClaimStatus(claim.id, "Rejected")}>
-                        Reject
-                      </button>
-                    </div>
-                  </article>
-                ))
+                workspace.claims.map((claim) => {
+                  const claimReviews = reviewRecordsFor(workspace, "claim", claim.id);
+                  return (
+                    <article className="claim-card" key={claim.id}>
+                      <div className="card-title-row">
+                        <strong>{claim.title}</strong>
+                        <StatusPill label={claim.status} />
+                      </div>
+                      <textarea
+                        className="claim-editor"
+                        onChange={(event) => updateClaimText(claim.id, event.target.value)}
+                        value={claim.text}
+                      />
+                      <span>Source: {claim.source.join(", ")}</span>
+                      <span>Confidence: {Math.round(claim.confidence * 100)}% / Severity: {claim.severity}</span>
+                      <label>
+                        Rejection rationale
+                        <textarea
+                          onChange={(event) => setClaimRejectionDrafts((current) => ({ ...current, [claim.id]: event.target.value }))}
+                          placeholder="Required before rejecting protocol intent"
+                          value={claimRejectionDrafts[claim.id] ?? ""}
+                        />
+                      </label>
+                      <label>
+                        Claim comment
+                        <textarea
+                          onChange={(event) => setClaimCommentDrafts((current) => ({ ...current, [claim.id]: event.target.value }))}
+                          placeholder="Reviewer note, question, or approval context"
+                          value={claimCommentDrafts[claim.id] ?? ""}
+                        />
+                      </label>
+                      <div className="inline-actions">
+                        <button type="button" onClick={() => updateClaimStatus(claim.id, "Human-approved")}>
+                          Approve
+                        </button>
+                        <button type="button" onClick={() => updateClaimStatus(claim.id, "Rejected")}>
+                          Reject
+                        </button>
+                        <button type="button" onClick={() => recordClaimEdit(claim.id, claim.text)}>
+                          Record edit
+                        </button>
+                        <button type="button" onClick={() => addClaimComment(claim.id)}>
+                          Add comment
+                        </button>
+                      </div>
+                      <ReviewHistory records={claimReviews} />
+                    </article>
+                  );
+                })
               )}
             </div>
           </section>
@@ -623,24 +706,39 @@ export function ProofboardWorkspace() {
               {workspace.properties.length === 0 ? (
                 <EmptyState text="Approved claims will become candidate invariants here." />
               ) : (
-                workspace.properties.map((property) => (
-                  <article className="property-row" key={property.id}>
-                    <div className="status-stack">
-                      <StatusPill label={property.status} />
-                      <StatusPill label={property.verificationLevel} />
-                      <StatusPill label={property.skepticStatus} />
-                    </div>
-                    <div className="property-copy">
-                      <p>{property.text}</p>
-                      <ul className="finding-list">
-                        {property.skepticFindings.map((finding) => (
-                          <li key={finding}>{finding}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <strong>Next: {property.nextAction}</strong>
-                  </article>
-                ))
+                workspace.properties.map((property) => {
+                  const propertyReviews = reviewRecordsFor(workspace, "property", property.id);
+                  return (
+                    <article className="property-row" key={property.id}>
+                      <div className="status-stack">
+                        <StatusPill label={property.status} />
+                        <StatusPill label={property.verificationLevel} />
+                        <StatusPill label={property.skepticStatus} />
+                      </div>
+                      <div className="property-copy">
+                        <p>{property.text}</p>
+                        <ul className="finding-list">
+                          {property.skepticFindings.map((finding) => (
+                            <li key={finding}>{finding}</li>
+                          ))}
+                        </ul>
+                        <label>
+                          Property comment
+                          <textarea
+                            onChange={(event) => setPropertyCommentDrafts((current) => ({ ...current, [property.id]: event.target.value }))}
+                            placeholder="Reviewer note about property strength, coverage, or next action"
+                            value={propertyCommentDrafts[property.id] ?? ""}
+                          />
+                        </label>
+                        <button type="button" onClick={() => addPropertyComment(property.id)}>
+                          Add property comment
+                        </button>
+                        <ReviewHistory records={propertyReviews} />
+                      </div>
+                      <strong>Next: {property.nextAction}</strong>
+                    </article>
+                  );
+                })
               )}
             </div>
           </section>
@@ -1100,6 +1198,28 @@ function VacuityPanel({ report }: { report: VacuityReport }) {
   );
 }
 
+function ReviewHistory({ records }: { records: NonNullable<Workspace["reviewRecords"]> }) {
+  if (records.length === 0) {
+    return (
+      <div className="compact-card">
+        <strong>Review history</strong>
+        <span>No review records yet.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="compact-card">
+      <strong>Review history</strong>
+      {records.slice(-4).map((record) => (
+        <span key={record.id}>
+          {record.action} by {record.reviewer}: {record.comment}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function PrinciplePanel() {
   return (
     <aside className="section-block principle-panel">
@@ -1167,6 +1287,37 @@ function mergeAdditionalClaims(existing: Claim[], suggested: Claim[]) {
 function mergeProperties(existing: Property[], generated: Property[]) {
   const generatedIds = new Set(generated.map((property) => property.id));
   return [...existing.filter((property) => !generatedIds.has(property.id)), ...generated];
+}
+
+function appendReviewRecord(
+  workspace: Workspace,
+  targetType: ReviewTargetType,
+  targetId: string,
+  action: ReviewAction,
+  reviewer: string,
+  comment: string
+): Workspace {
+  const createdAt = new Date().toISOString();
+  const sequence = (workspace.reviewRecords ?? []).length + 1;
+  return {
+    ...workspace,
+    reviewRecords: [
+      ...(workspace.reviewRecords ?? []),
+      {
+        id: `review_${targetType}_${targetId}_${sequence}_${createdAt.replace(/[^0-9]/g, "")}`,
+        targetType,
+        targetId,
+        action,
+        reviewer: reviewer.trim() || "Unassigned reviewer",
+        comment,
+        createdAt
+      }
+    ]
+  };
+}
+
+function reviewRecordsFor(workspace: Workspace, targetType: ReviewTargetType, targetId: string) {
+  return (workspace.reviewRecords ?? []).filter((record) => record.targetType === targetType && record.targetId === targetId);
 }
 
 function mergeAssumptions(existing: Assumption[], suggested: Assumption[]) {

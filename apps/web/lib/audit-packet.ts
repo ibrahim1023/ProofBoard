@@ -52,6 +52,7 @@ export function generateAuditExportFiles(workspace: Workspace, harnessBundle: Ha
       evidence: workspace.evidence,
       verificationRuns: workspace.verificationRuns,
       assumptions: workspace.assumptions,
+      reviewRecords: workspace.reviewRecords ?? [],
       verificationReadiness: readiness,
       vacuity
     }),

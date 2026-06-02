@@ -39,6 +39,36 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByText("Rejected")).toBeInTheDocument();
   });
 
+  it("records reviewer identity, claim rationale, edit history, and property comments", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Intent Board" }));
+    fireEvent.change(screen.getByLabelText("Reviewer"), { target: { value: "Alice Reviewer" } });
+    fireEvent.change(screen.getAllByLabelText("Rejection rationale")[0], {
+      target: { value: "Claim needs a source-backed emergency policy before approval." }
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "Reject" })[0]);
+
+    expect(screen.getByText(/rejected by Alice Reviewer: Claim needs a source-backed emergency policy/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getAllByLabelText("Claim comment")[0], {
+      target: { value: "Ask protocol team to link this claim to NatSpec." }
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "Add comment" })[0]);
+    expect(screen.getByText(/commented by Alice Reviewer: Ask protocol team/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Record edit" })[0]);
+    expect(screen.getByText(/edited by Alice Reviewer: Edited claim text/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate invariants" }));
+    fireEvent.change(screen.getAllByLabelText("Property comment")[0], {
+      target: { value: "Needs multi-actor withdraw coverage before audit handoff." }
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "Add property comment" })[0]);
+
+    expect(screen.getByText(/commented by Alice Reviewer: Needs multi-actor withdraw coverage/)).toBeInTheDocument();
+  });
+
   it("validates local LLM claim payloads before review", () => {
     render(<Home />);
 

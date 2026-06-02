@@ -19,6 +19,7 @@ In scope:
 - ERC4626-style vault intake through pasted Solidity and protocol notes.
 - Protocol map generation for contracts, inheritance, public/external functions, state, events, modifiers, roles, privileged flows, external calls, token dependencies, and vault asset flows.
 - Intent review board with template-based claim suggestions, source evidence, confidence metadata, edit/reject/approve workflows, and an explicit human approval gate.
+- Review-accountability primitives for reviewer identity, claim comments, property comments, approval history, edit history, and rejected-claim rationale.
 - ERC4626 property engine for share accounting, deposit/mint consistency, withdraw/redeem consistency, total assets versus supply, donation/inflation risk, rounding behavior, access control, pause behavior, fee behavior, and token assumptions.
 - Skeptic checks that flag weak, vague, vacuous, under-exercised, or assumption-heavy properties before teams over-trust generated tests.
 - Assumption Debt Board with status, severity, linked functions, linked properties, owner, rationale, revisit date, mitigation, accepted-risk justification, accepted-risk visibility, and out-of-scope visibility.
@@ -60,7 +61,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 76 passing | `npm test` |
+| Unit and eval assertions | 78 passing | `npm test` |
 | Browser E2E checks | 6 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
@@ -77,7 +78,7 @@ The web app in `apps/web` is the main ProofBoard surface. It provides project in
 
 ### Shared Data Model
 
-`packages/shared-types` defines the structured workspace model for sources, protocol maps, contracts, functions, state variables, events, modifiers, external calls, claims, properties, assumptions, verification runs, evidence, and audit packets.
+`packages/shared-types` defines the structured workspace model for sources, protocol maps, contracts, functions, state variables, events, modifiers, external calls, claims, properties, assumptions, review records, verification runs, evidence, and audit packets.
 
 ### Protocol Analyzer
 

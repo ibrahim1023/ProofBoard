@@ -86,6 +86,8 @@ export type FunctionFlow = (typeof functionFlows)[number];
 
 export type EvidenceStrength = "none" | "weak" | "medium" | "strong";
 export type VerificationRunStatus = "passed" | "failed" | "errored" | "not_run";
+export type ReviewTargetType = "claim" | "property";
+export type ReviewAction = "approved" | "edited" | "rejected" | "commented" | "generated";
 
 export interface Workspace {
   id: string;
@@ -99,6 +101,7 @@ export interface Workspace {
   assumptions: Assumption[];
   verificationRuns: VerificationRun[];
   evidence: Evidence[];
+  reviewRecords?: ReviewRecord[];
 }
 
 export interface SourceFile {
@@ -256,6 +259,16 @@ export interface Evidence {
   summary: string;
 }
 
+export interface ReviewRecord {
+  id: string;
+  targetType: ReviewTargetType;
+  targetId: string;
+  action: ReviewAction;
+  reviewer: string;
+  comment: string;
+  createdAt: string;
+}
+
 export interface AuditPacket {
   workspaceId: string;
   protocolMap: ProtocolMap;
@@ -286,6 +299,7 @@ export function validateWorkspace(workspace: Workspace): ValidationIssue[] {
   workspace.assumptions.forEach((assumption, index) => validateAssumption(assumption, `assumptions.${index}`, issues));
   workspace.verificationRuns.forEach((run, index) => validateVerificationRun(run, `verificationRuns.${index}`, issues));
   workspace.evidence.forEach((evidence, index) => validateEvidence(evidence, `evidence.${index}`, issues));
+  workspace.reviewRecords?.forEach((record, index) => validateReviewRecord(record, `reviewRecords.${index}`, issues));
   validateWorkspaceLinks(workspace, issues);
 
   return issues;
@@ -336,6 +350,16 @@ export function validateEvidence(evidence: Evidence, path = "evidence", issues: 
   return issues;
 }
 
+export function validateReviewRecord(record: ReviewRecord, path = "reviewRecord", issues: ValidationIssue[] = []): ValidationIssue[] {
+  requireString(record.id, `${path}.id`, issues);
+  requireEnum(record.targetType, ["claim", "property"] as const, `${path}.targetType`, issues);
+  requireString(record.targetId, `${path}.targetId`, issues);
+  requireEnum(record.action, ["approved", "edited", "rejected", "commented", "generated"] as const, `${path}.action`, issues);
+  requireString(record.reviewer, `${path}.reviewer`, issues);
+  requireString(record.createdAt, `${path}.createdAt`, issues);
+  return issues;
+}
+
 function validateWorkspaceLinks(workspace: Workspace, issues: ValidationIssue[]) {
   const claimIds = new Set(workspace.claims.map((claim) => claim.id));
   const propertyIds = new Set(workspace.properties.map((property) => property.id));
@@ -360,6 +384,10 @@ function validateWorkspaceLinks(workspace: Workspace, issues: ValidationIssue[])
 
   workspace.evidence.forEach((evidence, evidenceIndex) => {
     requireLink(propertyIds, evidence.propertyId, `evidence.${evidenceIndex}.propertyId`, "property", issues);
+  });
+  workspace.reviewRecords?.forEach((record, recordIndex) => {
+    const ids = record.targetType === "claim" ? claimIds : propertyIds;
+    requireLink(ids, record.targetId, `reviewRecords.${recordIndex}.targetId`, record.targetType, issues);
   });
 }
 
