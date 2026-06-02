@@ -21,7 +21,9 @@ Create a scaffold-only repository that follows the recommended ProofBoard monore
 - `evals` for AI and agent behavior evaluation
 - `docs` for architecture, verification levels, ERC4626 properties, and decisions
 
-Also create `AGENTS.md`, `task.md`, and `progress.md` so future agent sessions have explicit operational state.
+Also create `AGENTS.md` and `task.md` so future agent sessions have explicit operational state.
+
+`progress.md` was later retired as a maintained support file. `task.md` now carries durable task state, completed summaries, pending work, validation expectations, and next steps.
 
 ## Alternatives Considered
 

@@ -9,7 +9,6 @@ ProofBoard is a web-based protocol assurance workspace for smart contract teams.
 - Local `AGENTS.md` files override this file for their subtree.
 - If instructions conflict, stop and report the conflict.
 - Read `task.md` before starting implementation work.
-- Do not update `progress.md` unless the user explicitly asks for it.
 
 ## Project Layout
 - `apps/web/`: Proofboard web application surface.
@@ -68,7 +67,6 @@ Before completion:
 - For documentation-only changes, inspect changed files and report that automated gates are not configured.
 - Confirm `README.md` reflects major completed feature work when implementation scope changes.
 - Update `task.md` with task status, risks, and next step when project state changes.
-- Do not update `progress.md` as part of normal validation or completion reporting unless explicitly requested.
 
 ## Permissions
 Allowed without approval:
