@@ -26,7 +26,9 @@ test("moves a vault from intake through uploaded evidence and exports", async ({
   });
   await expect(page.getByLabel("Raw Foundry output")).toHaveValue(/invariant_depositMintConsistency/);
   await page.getByRole("button", { name: "Parse Foundry output" }).click();
-  await expect(page.getByText("passed")).toBeVisible();
+  await expect(page.getByText("passed", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Invariant vacuity metrics")).toBeVisible();
+  await expect(page.getByText("Vacuity review")).toBeVisible();
 
   await page.getByRole("button", { name: "Ledger" }).click();
   await expect(page.getByText("Foundry invariant_depositMintConsistency")).toBeVisible();

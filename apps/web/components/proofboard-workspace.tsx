@@ -18,6 +18,7 @@ import { generateAuditExportFiles } from "@/lib/audit-packet";
 import { completedDemoWorkspace, demoFoundryOutput, demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
 import { assessHarnessQuality, type HarnessQualityReport } from "@/lib/harness-quality";
 import { calculateVerificationReadiness, type VerificationReadiness } from "@/lib/readiness";
+import { assessInvariantVacuity, type VacuityReport } from "@/lib/vacuity";
 import type { Assumption, AssumptionStatus, BoardId, Claim, Property, ProtocolType, Workspace } from "@proofboard/shared-types";
 
 const boardItems: Array<{ id: BoardId; label: string }> = [
@@ -113,6 +114,7 @@ export function ProofboardWorkspace() {
   );
   const auditFiles = useMemo(() => generateAuditExportFiles(workspace, harnessBundle), [harnessBundle, workspace]);
   const harnessQuality = useMemo(() => assessHarnessQuality(workspace, harnessBundle), [harnessBundle, workspace]);
+  const vacuity = useMemo(() => assessInvariantVacuity(workspace), [workspace]);
   const selectedHarnessFile = harnessBundle.files.find((file) => file.path === selectedHarnessPath) ?? harnessBundle.files[0];
 
   function updateField(field: "name" | "description" | "solidity", value: string) {
@@ -922,6 +924,7 @@ export function ProofboardWorkspace() {
                   <span>{workspace.verificationRuns.at(-1)?.status ?? "No parsed run yet"}</span>
                   <span>{workspace.verificationRuns.at(-1)?.counterexamples[0] ?? "Counterexamples remain attached when Foundry reports them."}</span>
                 </div>
+                <VacuityPanel report={vacuity} />
                 {resultNotice.length > 0 && (
                   <div className="compact-card result-notice" role="status">
                     <strong>Parser notes</strong>
@@ -1050,6 +1053,48 @@ function HarnessQualityPanel({ report }: { report: HarnessQualityReport }) {
             <span>{check.nextAction}</span>
           </article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function VacuityPanel({ report }: { report: VacuityReport }) {
+  return (
+    <section className="vacuity-panel" aria-label="Invariant vacuity metrics">
+      <div className="card-title-row">
+        <strong>Vacuity review</strong>
+        <StatusPill label={`${report.score}%`} />
+      </div>
+      <div className="vacuity-flow-row">
+        <span>Touched: {report.touchedCoreFlows.join(", ") || "None visible"}</span>
+        <span>Missing: {report.missingCoreFlows.join(", ") || "None detected"}</span>
+      </div>
+      <div className="vacuity-metrics">
+        {report.invariantMetrics.length === 0 ? (
+          <span>No invariant run metrics parsed yet.</span>
+        ) : (
+          report.invariantMetrics.map((metric) => (
+            <span key={`${metric.testName}-${metric.propertyId ?? "unlinked"}`}>
+              {metric.testName}: {metric.status}, runs {metric.runs ?? "?"}, calls {metric.calls ?? "?"}, reverts {metric.reverts ?? "?"}
+            </span>
+          ))
+        )}
+      </div>
+      <div className="vacuity-findings">
+        {report.findings.length === 0 ? (
+          <span>No vacuity signals detected in preserved raw output.</span>
+        ) : (
+          report.findings.map((finding) => (
+            <article key={finding.id}>
+              <div>
+                <strong>{finding.title}</strong>
+                <StatusPill label={finding.severity} />
+              </div>
+              <p>{finding.summary}</p>
+              <span>{finding.nextAction}</span>
+            </article>
+          ))
+        )}
       </div>
     </section>
   );
@@ -1213,7 +1258,7 @@ function boundaryKind(label: string): BoundaryKind {
     return "weak";
   }
 
-  if (["low", "medium", "high"].includes(normalized)) {
+  if (["low", "medium", "high", "warning", "info"].includes(normalized) || normalized.endsWith("%")) {
     return "risk";
   }
 

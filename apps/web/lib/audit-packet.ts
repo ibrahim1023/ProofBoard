@@ -2,6 +2,7 @@ import type { AuditPacket, Assumption, Property, Workspace } from "@proofboard/s
 import type { HarnessBundle } from "@proofboard/harness-generator";
 import { assessHarnessQuality, type HarnessQualityReport } from "./harness-quality";
 import { calculateVerificationReadiness, type VerificationReadiness } from "./readiness";
+import { assessInvariantVacuity, type VacuityReport } from "./vacuity";
 
 export interface AuditExportFile {
   name: string;
@@ -33,6 +34,7 @@ export function generateAuditExportFiles(workspace: Workspace, harnessBundle: Ha
   const packet = buildAuditPacket(workspace, harnessBundle);
   const readiness = calculateVerificationReadiness(workspace);
   const harnessQuality = assessHarnessQuality(workspace, harnessBundle);
+  const vacuity = assessInvariantVacuity(workspace);
   const approvedProperties = workspace.properties.filter((property) =>
     packet.approvedClaims.some((claim) => claim.id === property.claimId)
   );
@@ -44,15 +46,17 @@ export function generateAuditExportFiles(workspace: Workspace, harnessBundle: Ha
       evidence: workspace.evidence,
       verificationRuns: workspace.verificationRuns,
       assumptions: workspace.assumptions,
-      verificationReadiness: readiness
+      verificationReadiness: readiness,
+      vacuity
     }),
     jsonFile("verification-readiness.json", readiness),
     jsonFile("harness-quality.json", harnessQuality),
+    jsonFile("vacuity-report.json", vacuity),
     markdownFile("assumption-debt.md", assumptionDebtMarkdown(workspace.assumptions)),
     jsonFile("protocol-map.json", workspace.protocolMap),
     jsonFile("approved-properties.json", approvedProperties),
     jsonFile("generated-foundry-invariants.json", harnessBundle),
-    markdownFile("audit-prep.md", auditPrepMarkdown(packet, readiness, harnessQuality))
+    markdownFile("audit-prep.md", auditPrepMarkdown(packet, readiness, harnessQuality, vacuity))
   ];
 }
 
@@ -113,7 +117,12 @@ ${assumptions
   .join("\n")}`;
 }
 
-function auditPrepMarkdown(packet: AuditPacket, readiness: VerificationReadiness, harnessQuality: HarnessQualityReport) {
+function auditPrepMarkdown(
+  packet: AuditPacket,
+  readiness: VerificationReadiness,
+  harnessQuality: HarnessQualityReport,
+  vacuity: VacuityReport
+) {
   return `# Audit Prep
 
 ## Verification readiness
@@ -127,6 +136,15 @@ ${lines(readiness.nextActions)}
 ${harnessQuality.score}/100
 
 ${lines(harnessQuality.checks.map((check) => `${check.label}: ${check.status} - ${check.nextAction}`))}
+
+## Vacuity review
+${vacuity.score}/100
+
+Touched core flows: ${vacuity.touchedCoreFlows.join(", ") || "None visible in raw output."}
+
+Missing core flows: ${vacuity.missingCoreFlows.join(", ") || "None detected."}
+
+${lines(vacuity.findings.map((finding) => `${finding.severity}: ${finding.title} - ${finding.nextAction}`))}
 
 ## Suggested focus areas
 ${lines(packet.suggestedAuditFocus)}

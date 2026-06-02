@@ -139,11 +139,18 @@ describe("ProofBoard workspace", () => {
     render(<Home />);
 
     fireEvent.click(screen.getByRole("button", { name: "Results" }));
+    expect(screen.getByLabelText("Invariant vacuity metrics")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Raw Foundry output"), {
-      target: { value: "[PASS] invariant_redeemableAssets() (runs: 256)" }
+      target: {
+        value: `[PASS] invariant_redeemableAssets() (runs: 16, calls: 12, reverts: 0)
+Sequence:
+  handler.deposit(1 ether, 0)`
+      }
     });
     fireEvent.click(screen.getByRole("button", { name: "Parse Foundry output" }));
     expect(screen.getByText("passed")).toBeInTheDocument();
+    expect(screen.getByText("Low call volume")).toBeInTheDocument();
+    expect(screen.getByText(/Missing:/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Ledger" }));
     expect(screen.getAllByText("fuzzed_passed").length).toBeGreaterThan(0);
