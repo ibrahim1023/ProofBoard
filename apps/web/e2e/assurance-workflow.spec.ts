@@ -97,3 +97,49 @@ test("shows runner plans and parser errors without creating evidence", async ({ 
   await expect(page.getByText("Parser notes")).toBeVisible();
   await expect(page.getByText("No invariant pass or fail results were found in the Foundry output.")).toBeVisible();
 });
+
+test("keeps an empty workspace explicit across review boards", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "New blank workspace" }).click();
+  await expect(page.getByRole("heading", { name: "New ProofBoard workspace" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Protocol Map" }).click();
+  await expect(page.getByText("Paste Solidity or load the demo.")).toBeVisible();
+  await expect(page.getByText("No functions detected. Add Solidity or load the demo workspace.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Intent Board" }).click();
+  await expect(page.getByText("No claims yet. ProofBoard will propose claims, but humans approve intent.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Ledger" }).click();
+  await expect(page.getByText("Not ready", { exact: true })).toBeVisible();
+  await expect(page.getByText("No ledger entries yet.")).toBeVisible();
+});
+
+test("rejects malformed and unsupported structured claim payloads", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Intent Board" }).click();
+  await page.getByLabel("Claim mode").selectOption("local_llm");
+
+  await page.getByLabel("Structured claim payload").fill("{not valid json");
+  await page.getByRole("button", { name: "Validate claim payload" }).click();
+  await expect(page.getByText("Structured claim payload must be valid JSON.")).toBeVisible();
+
+  await page.getByLabel("Structured claim payload").fill(
+    JSON.stringify({
+      status: "proposed",
+      claims: [
+        {
+          title: "Unsupported claim",
+          text: "A claim without source grounding should not enter review.",
+          source: "README.md",
+          confidence: 0.9,
+          severity: "high"
+        }
+      ]
+    })
+  );
+  await page.getByRole("button", { name: "Validate claim payload" }).click();
+  await expect(page.getByText("claims.0.source must be a string array.")).toBeVisible();
+  await expect(page.locator("article").filter({ hasText: "Unsupported claim" })).toHaveCount(0);
+});
