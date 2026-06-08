@@ -26,6 +26,7 @@ export function analyzeSoliditySource(source: SourceFile): ProtocolMap {
   const parserWarnings: string[] = [
     "Static regex parser is approximate; confirm findings before treating them as evidence."
   ];
+  detectUnsupportedSyntax(source.content, parserWarnings);
   const contracts = extractContracts(source, parserWarnings);
   const externalCalls = contracts.flatMap((contract) => contract.externalCalls);
   const allFunctions = contracts.flatMap((contract) => contract.functions);
@@ -84,12 +85,7 @@ function extractContracts(source: SourceFile, parserWarnings: string[]): Contrac
 
     const contractId = makeId("contract", name);
     const body = source.content.slice(bodyStart + 1, bodyEnd);
-    const inherits = inheritsRaw
-      ? inheritsRaw
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean)
-      : [];
+    const inherits = inheritsRaw ? splitTopLevel(inheritsRaw).map(normalizeInheritance).filter(Boolean) : [];
     const functions = extractFunctions(body, contractId);
     const stateVariables = extractStateVariables(body, contractId);
     const events = extractEvents(body, contractId);
@@ -143,14 +139,22 @@ function extractFunctions(body: string, contractId: string): ProtocolFunction[] 
 
 function extractStateVariables(body: string, contractId: string): StateVariable[] {
   const variables: StateVariable[] = [];
-  const statePattern = new RegExp(`^\\s*(${solidityTypePattern})\\s+(?:(public|external|internal|private)\\s+)?([A-Za-z_][A-Za-z0-9_]*)\\s*(?:=\\s*[^;]+)?;`, "gm");
+  const statePattern = new RegExp(
+    `^\\s*(${solidityTypePattern})\\s+((?:(?:public|external|internal|private|constant|immutable)\\s+)*)` +
+      `([A-Za-z_][A-Za-z0-9_]*)\\s*(?:=\\s*[^;]+)?;`,
+    "gm"
+  );
   let match: RegExpExecArray | null;
 
   while ((match = statePattern.exec(body)) !== null) {
-    const [, type, visibilityRaw, name] = match;
+    const [, type, qualifiersRaw, name] = match;
     if (["return", "require", "if", "for", "while"].includes(type)) {
       continue;
     }
+    const visibilityRaw = qualifiersRaw
+      .trim()
+      .split(/\s+/)
+      .find((qualifier) => ["public", "external", "internal", "private"].includes(qualifier));
 
     variables.push({
       id: makeId("state", `${contractId}_${name}`),
@@ -236,7 +240,7 @@ function detectRoles(contracts: Contract[], privilegedFunctions: ProtocolFunctio
 
 function detectAssetFlows(functions: ProtocolFunction[]): AssetFlow[] {
   return functions
-    .filter((fn) => ["deposit", "mint", "withdraw", "redeem"].includes(fn.name.toLowerCase()) || fn.flow === "privileged")
+    .filter((fn) => canonicalVaultFlowName(fn.name) !== undefined || fn.flow === "privileged")
     .map((fn) => ({
       id: makeId("flow", fn.name),
       name: fn.name,
@@ -277,7 +281,7 @@ function inferFunctionFlow(name: string, tail: string, modifiers: string[]): Fun
     return "privileged";
   }
 
-  if (["deposit", "mint", "withdraw", "redeem"].includes(normalizedName)) {
+  if (canonicalVaultFlowName(normalizedName)) {
     return "user";
   }
 
@@ -289,9 +293,9 @@ function inferFunctionFlow(name: string, tail: string, modifiers: string[]): Fun
 }
 
 function inferAssetFlowKind(name: string, flow: FunctionFlow): AssetFlow["kind"] {
-  const normalized = name.toLowerCase();
-  if (normalized === "deposit" || normalized === "mint" || normalized === "withdraw" || normalized === "redeem") {
-    return normalized;
+  const canonicalName = canonicalVaultFlowName(name);
+  if (canonicalName) {
+    return canonicalName;
   }
   if (flow === "privileged") {
     return "privileged";
@@ -341,7 +345,7 @@ function describeFunction(name: string, modifiers: string[]) {
   const modifierNote = modifiers.length > 0 ? ` Uses modifiers: ${modifiers.join(", ")}.` : "";
   const normalized = name.toLowerCase();
 
-  if (["deposit", "mint", "withdraw", "redeem"].includes(normalized)) {
+  if (canonicalVaultFlowName(normalized)) {
     return `ERC4626-style user asset movement flow.${modifierNote}`;
   }
 
@@ -358,6 +362,53 @@ function describeFunction(name: string, modifiers: string[]) {
 
 function normalizeWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function detectUnsupportedSyntax(source: string, parserWarnings: string[]) {
+  const warnings: Array<[RegExp, string]> = [
+    [/\binterface\s+[A-Za-z_]/, "Interfaces are not analyzed as protocol contracts by the current static parser."],
+    [/\blibrary\s+[A-Za-z_]/, "Libraries are not analyzed as protocol contracts by the current static parser."],
+    [/\bassembly\s*\{/, "Inline assembly is not interpreted by the current static parser."],
+    [
+      /\.(?:call|delegatecall|staticcall)\s*(?:\{|\()/,
+      "Low-level call targets and calldata are not fully resolved by the current static parser."
+    ]
+  ];
+
+  warnings.forEach(([pattern, warning]) => {
+    if (pattern.test(source)) {
+      parserWarnings.push(warning);
+    }
+  });
+}
+
+function splitTopLevel(value: string) {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] === "(") {
+      depth += 1;
+    } else if (value[index] === ")") {
+      depth = Math.max(0, depth - 1);
+    } else if (value[index] === "," && depth === 0) {
+      parts.push(value.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+
+  parts.push(value.slice(start).trim());
+  return parts.filter(Boolean);
+}
+
+function normalizeInheritance(value: string) {
+  return value.replace(/\s*\(.*\)\s*$/, "").trim();
+}
+
+function canonicalVaultFlowName(name: string): AssetFlow["kind"] | undefined {
+  const normalized = name.toLowerCase();
+  return (["deposit", "mint", "withdraw", "redeem"] as const).find((flow) => normalized === flow || normalized.startsWith(flow));
 }
 
 function makeId(prefix: string, value: string) {

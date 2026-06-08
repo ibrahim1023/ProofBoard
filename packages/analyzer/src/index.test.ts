@@ -129,4 +129,81 @@ describe("analyzeSoliditySource", () => {
     expect(map.userFlows.map((fn) => fn.name)).toEqual(["deposit", "redeem"]);
     expect(map.tokenDependencies[0]?.source).toBe("ERC20 reference");
   });
+
+  it("normalizes inheritance constructor arguments without splitting nested commas", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      path: "src/ConfiguredVault.sol",
+      content: `contract ConfiguredVault is ERC4626(IERC20(asset_)), Ownable(initialOwner) {
+        function deposit(uint256 assets, address receiver) external returns (uint256 shares) {}
+      }`
+    });
+
+    expect(map.contracts[0]?.inherits).toEqual(["ERC4626", "Ownable"]);
+    expect(map.roles[0]?.name).toBe("owner");
+    expect(map.tokenDependencies[0]?.source).toBe("ERC4626 inheritance");
+  });
+
+  it("extracts immutable token state and vault flow naming variations", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      path: "src/NamedFlowVault.sol",
+      content: `contract NamedFlowVault {
+        IERC20 public immutable assetToken;
+        uint256 public constant MAX_FEE_BPS = 1000;
+
+        function depositAssets(uint256 assets, address receiver) external returns (uint256 shares) {
+          assetToken.safeTransferFrom(msg.sender, address(this), assets);
+        }
+
+        function withdrawAssets(uint256 assets, address receiver) external returns (uint256 shares) {
+          assetToken.safeTransfer(receiver, assets);
+        }
+      }`
+    });
+
+    expect(map.criticalState.map((state) => state.name)).toEqual(["assetToken", "MAX_FEE_BPS"]);
+    expect(map.userFlows.map((fn) => fn.name)).toEqual(["depositAssets", "withdrawAssets"]);
+    expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["deposit", "withdraw"]);
+    expect(map.externalCalls.map((call) => call.expression)).toEqual(
+      expect.arrayContaining([
+        "assetToken.safeTransferFrom(msg.sender, address(this), assets)",
+        "assetToken.safeTransfer(receiver, assets)"
+      ])
+    );
+  });
+
+  it("warns when unsupported Solidity constructs require manual review", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      path: "src/UnsupportedShapes.sol",
+      content: `interface IStrategy {
+        function totalAssets() external view returns (uint256);
+      }
+
+      library VaultMath {
+        function scale(uint256 value) internal pure returns (uint256) { return value; }
+      }
+
+      contract UnsupportedShapes is ERC4626 {
+        function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
+          assembly { shares := assets }
+        }
+
+        function execute(address target, bytes calldata payload) external {
+          target.delegatecall(payload);
+        }
+      }`
+    });
+
+    expect(map.contracts.map((contract) => contract.name)).toEqual(["UnsupportedShapes"]);
+    expect(map.parserWarnings).toEqual(
+      expect.arrayContaining([
+        "Interfaces are not analyzed as protocol contracts by the current static parser.",
+        "Libraries are not analyzed as protocol contracts by the current static parser.",
+        "Inline assembly is not interpreted by the current static parser.",
+        "Low-level call targets and calldata are not fully resolved by the current static parser."
+      ])
+    );
+  });
 });

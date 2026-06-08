@@ -18,7 +18,7 @@ npm run build
 Current automated checks cover:
 
 - shared schema validation and workspace claim/property/assumption/evidence link integrity
-- Solidity analyzer extraction and explicit parser warning cases
+- Solidity analyzer extraction, inheritance arguments, naming variants, immutable state, unusual token calls, and explicit unsupported-syntax warnings
 - property templates, skeptic checks, assumption linking, and structured LLM claim refusal gates
 - Foundry harness artifact paths, traceability, and a generated scaffold compile smoke when `forge` is available
 - wired generated-harness execution against a local target-vault Foundry fixture when `forge` is available
@@ -37,15 +37,15 @@ Current automated checks cover:
 |---|---:|---|
 | Web component, API, export, and demo tests | 31 | `npm test` |
 | Shared schema and link validation | 7 | `npm test` |
-| Solidity analyzer fixtures | 7 | `npm test` |
+| Solidity analyzer fixtures | 10 | `npm test` |
 | ERC4626 property-engine fixtures | 10 | `npm test` |
 | Foundry harness-generator fixtures | 4 | `npm test` |
 | Foundry verification-runner fixtures | 7 | `npm test` |
 | Foundry result-parser fixtures | 8 | `npm test` |
 | Deterministic eval assertions | 7 | `npm test` and `npm run eval` |
-| Browser E2E checks | 8 | `npm run test:e2e` |
+| Browser E2E checks | 12 | `npm run test:e2e` |
 
-`npm test` currently covers 81 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
+`npm test` currently covers 84 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
 
 ### Eval And Validation Metrics
 
@@ -63,6 +63,6 @@ Before claiming broader support, keep adding:
 
 - realistic Foundry logs from multiple Forge output variants
 - stronger generated harness fixtures with protocol-specific handlers and assertions beyond the wired constructor smoke
-- richer ERC4626 fixture families for unsupported Solidity constructs, non-standard naming, and adversarial strategy behavior
-- browser E2E checks for additional empty and error states as the UI surface expands
+- richer ERC4626 fixture families for adversarial strategy behavior and multi-contract source relationships
+- browser E2E checks for future responsive and runner cancellation error states as the UI surface expands
 - repeat manual QA of product wording and exported packet contents before each public release
