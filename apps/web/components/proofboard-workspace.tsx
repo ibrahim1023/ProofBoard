@@ -17,6 +17,7 @@ import {
 import { generateAuditExportFiles } from "@/lib/audit-packet";
 import { completedDemoWorkspace, demoFoundryOutput, demoWorkspace, emptyWorkspace } from "@/lib/demo-workspace";
 import { assessHarnessQuality, type HarnessQualityReport } from "@/lib/harness-quality";
+import { evaluatePublicDemo, publicDemoSteps, type PublicDemoAcceptance } from "@/lib/public-demo";
 import { calculateVerificationReadiness, type VerificationReadiness } from "@/lib/readiness";
 import { assessInvariantVacuity, type VacuityReport } from "@/lib/vacuity";
 import type {
@@ -127,6 +128,10 @@ export function ProofboardWorkspace() {
     [harnessBundle, runnerDockerImage, runnerMode, runnerProjectPath, workspace]
   );
   const auditFiles = useMemo(() => generateAuditExportFiles(workspace, harnessBundle), [harnessBundle, workspace]);
+  const publicDemoAcceptance = useMemo(
+    () => evaluatePublicDemo(workspace, auditFiles.map((file) => file.name)),
+    [auditFiles, workspace]
+  );
   const harnessQuality = useMemo(() => assessHarnessQuality(workspace, harnessBundle), [harnessBundle, workspace]);
   const vacuity = useMemo(() => assessInvariantVacuity(workspace), [workspace]);
   const selectedHarnessFile = harnessBundle.files.find((file) => file.path === selectedHarnessPath) ?? harnessBundle.files[0];
@@ -414,8 +419,9 @@ export function ProofboardWorkspace() {
         <EvidenceBoundaryLegend />
 
         {activeBoard === "upload" && (
-          <section className="workspace-grid">
-            <div className="section-block wide">
+          <>
+            <section className="workspace-grid">
+              <div className="section-block wide">
               <div className="section-heading">
                 <p className="eyebrow">Create workspace</p>
                 <h3>Project intake</h3>
@@ -480,10 +486,12 @@ export function ProofboardWorkspace() {
                   Repo zip upload placeholder
                 </label>
               </div>
-            </div>
+              </div>
 
-            <PrinciplePanel />
-          </section>
+              <PrinciplePanel />
+            </section>
+            <PublicDemoPanel acceptance={publicDemoAcceptance} onLoadCompletedDemo={loadCompletedDemoWorkspace} />
+          </>
         )}
 
         {activeBoard === "map" && (
@@ -1217,6 +1225,53 @@ function ReviewHistory({ records }: { records: NonNullable<Workspace["reviewReco
         </span>
       ))}
     </div>
+  );
+}
+
+function PublicDemoPanel({
+  acceptance,
+  onLoadCompletedDemo
+}: {
+  acceptance: PublicDemoAcceptance[];
+  onLoadCompletedDemo: () => void;
+}) {
+  return (
+    <section className="section-block public-demo" aria-label="Public demo guide">
+      <div className="section-heading">
+        <p className="eyebrow">Public demo</p>
+        <h3>ERC4626 assurance walkthrough</h3>
+      </div>
+      <div className="public-demo-grid">
+        <div className="stack">
+          {publicDemoSteps.map((step, index) => (
+            <article className="demo-step" key={step.id}>
+              <span>{index + 1}</span>
+              <div>
+                <strong>{step.board}: {step.title}</strong>
+                <p>{step.outcome}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="stack">
+          <button className="primary-action" onClick={onLoadCompletedDemo} type="button">
+            Start completed demo
+          </button>
+          {acceptance.map((item) => (
+            <div className="compact-card" key={item.id}>
+              <div>
+                <strong>{item.label}</strong>
+                <StatusPill label={item.satisfied ? "Ready" : "Needs setup"} />
+              </div>
+              <span>{item.evidence}</span>
+            </div>
+          ))}
+          <p className="demo-disclaimer">
+            Demo readiness means the workflow and evidence boundaries are visible. It does not mean the example vault is safe.
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 

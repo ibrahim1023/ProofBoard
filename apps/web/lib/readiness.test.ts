@@ -14,9 +14,12 @@ describe("verification readiness", () => {
 
   it("rewards parsed evidence but still reports failed evidence boundaries", () => {
     const readiness = calculateVerificationReadiness(completedDemoWorkspace);
+    const baseline = calculateVerificationReadiness(demoWorkspace);
     const evidenceFactor = readiness.factors.find((factor) => factor.id === "evidence");
+    const baselineEvidenceFactor = baseline.factors.find((factor) => factor.id === "evidence");
 
-    expect(readiness.score).toBeGreaterThan(calculateVerificationReadiness(demoWorkspace).score);
+    expect(evidenceFactor?.score).toBeGreaterThan(baselineEvidenceFactor?.score ?? 0);
+    expect(readiness.score).toBeLessThanOrEqual(baseline.score);
     expect(evidenceFactor?.summary).toContain("properties have evidence");
     expect(readiness.blockers).toContain("Failed fuzz evidence needs implementation review, property review, or documented remediation.");
   });

@@ -17,6 +17,9 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByText("Inferred")).toBeInTheDocument();
     expect(screen.getByText("Failed evidence")).toBeInTheDocument();
     expect(screen.getByText("Repo zip upload placeholder")).toBeInTheDocument();
+    expect(screen.getByLabelText("Public demo guide")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start completed demo" })).toBeInTheDocument();
+    expect(screen.getByText("Donation or inflation concern is represented")).toBeInTheDocument();
   });
 
   it("loads the completed demo ledger with fuzz evidence", () => {
@@ -26,7 +29,9 @@ describe("ProofBoard workspace", () => {
 
     expect(screen.getAllByText("ExampleVault Completed Demo")).toHaveLength(2);
     expect(screen.getAllByText("fuzzed_failed").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("weak_or_vacuous").length).toBeGreaterThan(0);
     expect(screen.getByText(/Foundry invariant_pauseBehavior/)).toBeInTheDocument();
+    expect(screen.getByText(/direct donation should not let an early depositor/i)).toBeInTheDocument();
   });
 
   it("keeps generated claims behind human review controls", () => {
@@ -255,7 +260,8 @@ Sequence:
       `[PASS] invariant_redeemableAssets() (runs: 256)
 [FAIL. Reason: assertion failed] invariant_pauseBehavior()
 Counterexample: paused vault accepted a deposit
-Sequence: handler.deposit(1 ether, alice)`
+Sequence: handler.deposit(1 ether, alice)
+Warning: unreached handler selector handler.mint(uint256,address)`
     );
   });
 

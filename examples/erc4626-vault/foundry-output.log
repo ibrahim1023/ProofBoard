@@ -2,3 +2,4 @@
 [FAIL. Reason: assertion failed] invariant_pauseBehavior()
 Counterexample: paused vault accepted a deposit
 Sequence: handler.deposit(1 ether, alice)
+Warning: unreached handler selector handler.mint(uint256,address)

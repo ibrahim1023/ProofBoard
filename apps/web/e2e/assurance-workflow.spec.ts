@@ -55,6 +55,31 @@ test("keeps workspace navigation usable across configured viewports", async ({ p
   await expect(page.getByLabel("Filter")).toBeVisible();
 });
 
+test("runs the completed public demo without implying safety", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByLabel("Public demo guide")).toBeVisible();
+  await page.getByRole("button", { name: "Start completed demo" }).click();
+
+  await expect(page.getByText(/direct donation should not let an early depositor/i)).toBeVisible();
+  await expect(page.getByText("weak_or_vacuous", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("fuzzed_failed", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Assumption Debt" }).click();
+  await expect(page.getByText(/Direct donations and first-depositor exchange-rate manipulation/)).toBeVisible();
+  await expect(page.getByText("Underlying token does not rebase.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Results" }).click();
+  await expect(page.getByLabel("Raw Foundry output")).toHaveValue(/unreached handler selector handler\.mint/);
+  await expect(page.getByText("Vacuity review")).toBeVisible();
+
+  await page.getByRole("button", { name: "Export" }).click();
+  await expect(page.getByText(/not a safety score/i)).toBeVisible();
+  const packetDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: /audit-prep\.md/ }).click();
+  await expect((await packetDownload).suggestedFilename()).toBe("audit-prep.md");
+});
+
 test("shows runner plans and parser errors without creating evidence", async ({ page }) => {
   await page.goto("/");
 

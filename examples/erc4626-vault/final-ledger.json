@@ -1,8 +1,8 @@
 [
   {
     "propertyId": "property_redeemable_assets",
-    "verificationLevel": "fuzzed_passed",
-    "evidence": "Foundry invariant_redeemableAssets",
+    "verificationLevel": "weak_or_vacuous",
+    "evidence": "Foundry invariant_redeemableAssets with unreached mint handler warning",
     "remainingAssumptions": ["assumption_standard_erc20", "assumption_no_rebase"]
   },
   {
@@ -16,5 +16,11 @@
     "verificationLevel": "ai_inferred",
     "evidence": "None attached",
     "remainingAssumptions": ["assumption_standard_erc20"]
+  },
+  {
+    "propertyId": "property_donation_sensitivity",
+    "verificationLevel": "ai_inferred",
+    "evidence": "None attached",
+    "remainingAssumptions": ["assumption_donation_policy"]
   }
 ]

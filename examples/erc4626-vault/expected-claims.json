@@ -13,5 +13,10 @@
     "id": "claim_pause_blocks_flows",
     "title": "Paused vault blocks asset movement",
     "expectedStatus": "Edited"
+  },
+  {
+    "id": "claim_donation_inflation",
+    "title": "Donations do not create unsafe share inflation",
+    "expectedStatus": "AI-inferred"
   }
 ]

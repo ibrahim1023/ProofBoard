@@ -42,7 +42,8 @@ contract ExampleVault is ERC4626, Ownable {
 export const demoFoundryOutput = `[PASS] invariant_redeemableAssets() (runs: 256)
 [FAIL. Reason: assertion failed] invariant_pauseBehavior()
 Counterexample: paused vault accepted a deposit
-Sequence: handler.deposit(1 ether, alice)`;
+Sequence: handler.deposit(1 ether, alice)
+Warning: unreached handler selector handler.mint(uint256,address)`;
 
 const sourceFile: SourceFile = {
   id: "source_example_vault",
@@ -229,6 +230,17 @@ export const demoWorkspace: Workspace = {
       relatedFunctions: ["pause", "setFeeRecipient"],
       severity: "critical",
       status: "AI-inferred"
+    },
+    {
+      id: "claim_donation_inflation",
+      title: "Donations do not create unsafe share inflation",
+      text: "Direct asset donations and first-depositor conditions should not create an unsafe exchange-rate advantage or dilute later depositors.",
+      source: ["ERC4626 asset accounting", "vault donation threat model"],
+      confidence: 0.72,
+      relatedContracts: ["ExampleVault"],
+      relatedFunctions: ["deposit", "mint", "totalAssets"],
+      severity: "critical",
+      status: "AI-inferred"
     }
   ],
   properties: [
@@ -270,6 +282,19 @@ export const demoWorkspace: Workspace = {
       assumptions: ["assumption_admin_policy"],
       evidence: ["evidence_generated_pause_harness"],
       nextAction: "Run generated Foundry invariant locally."
+    },
+    {
+      id: "property_donation_sensitivity",
+      claimId: "claim_donation_inflation",
+      text: "A direct donation should not let an early depositor capture an unsafe share-price advantage over later depositors.",
+      status: "Draft",
+      skepticStatus: "Needs stronger actor model",
+      skepticFindings: ["Donation/inflation behavior needs first-depositor, donor, and later-depositor actors."],
+      verificationLevel: "ai_inferred",
+      risk: "critical",
+      assumptions: ["assumption_donation_policy"],
+      evidence: [],
+      nextAction: "Approve or edit the donation claim, then exercise first-depositor and donation sequences."
     }
   ],
   assumptions: [
@@ -312,6 +337,19 @@ export const demoWorkspace: Workspace = {
       acceptedRiskJustification: "The team accepts this risk only if the deployed admin path matches the documented emergency policy.",
       relatedProperties: ["property_pause_behavior"],
       relatedFunctions: ["pause", "setFeeRecipient"]
+    },
+    {
+      id: "assumption_donation_policy",
+      text: "Direct donations and first-depositor exchange-rate manipulation are not yet mitigated or bounded.",
+      whyItMatters: "An attacker may manipulate the asset-to-share ratio before later users deposit.",
+      status: "Needs invariant",
+      severity: "critical",
+      owner: "Verification lead",
+      rationale: "The current demo preserves the concern but does not claim the generated harness closes it.",
+      revisitBy: "2026-06-22",
+      mitigation: "Add first-depositor, donor, and later-depositor actors plus minimum-liquidity or virtual-share assertions.",
+      relatedProperties: ["property_donation_sensitivity"],
+      relatedFunctions: ["deposit", "mint", "totalAssets"]
     }
   ],
   verificationRuns: [
