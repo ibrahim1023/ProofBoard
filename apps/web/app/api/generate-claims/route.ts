@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 
 const defaultModel = "qwen2.5-coder:7b";
 const maxSourceCharacters = 40_000;
+export const localClaimPromptVersion = "ollama-claims-v1";
 
 const claimEnvelopeSchema = {
   type: "object",
@@ -111,6 +112,7 @@ export async function POST(request: Request) {
       ok: true,
       payload: envelope,
       model: ollama.model ?? parsed.request.model,
+      promptVersion: localClaimPromptVersion,
       refusal: validation.refusal,
       metrics: {
         totalDurationNs: ollama.total_duration,

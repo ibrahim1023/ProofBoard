@@ -9,6 +9,7 @@ From the repository root:
 ```bash
 npm test
 npm run test:e2e
+npm run test:ollama
 npm run eval
 npm run lint
 npm run typecheck
@@ -20,6 +21,7 @@ Current automated checks cover:
 - shared schema validation and workspace claim/property/assumption/evidence link integrity
 - Solidity analyzer extraction, inheritance arguments, naming variants, immutable state, unusual token calls, and explicit unsupported-syntax warnings
 - property templates, skeptic checks, assumption linking, structured LLM claim refusal gates, and mocked Ollama adapter responses
+- opt-in live Ollama proposal/refusal smoke coverage, gated by `OLLAMA_SMOKE=1` and local model availability
 - Foundry harness artifact paths, traceability, and a generated scaffold compile smoke when `forge` is available
 - wired generated-harness execution against a local target-vault Foundry fixture, including deposit, withdraw, donation, and accounting assertions, when `forge` is available
 - Foundry output pass/fail, counterexample, parser-error, weak-handler, and unlinked-invariant handling
@@ -56,6 +58,10 @@ Current automated checks cover:
 | Validation gates | 4 / 4 | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` |
 | Browser workflow projects | 2 / 2 | Desktop Chrome and mobile Chrome projects |
 | Model-backed LLM benchmark accuracy | Not measured | MVP validates structured claim boundaries and deterministic templates only |
+
+### Opt-In Ollama Smoke
+
+`npm run test:ollama` probes `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`) for `OLLAMA_MODEL` (default `qwen2.5-coder:7b`). If available, it checks a source-backed proposal and an unsupported-input refusal. The run reports model, prompt version, dataset version, date, latency, and Ollama token metrics. It is not part of deterministic release gates and is not a quality benchmark.
 
 ## Remaining High-Value Gates
 

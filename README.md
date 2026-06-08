@@ -189,6 +189,12 @@ Run release-blocker evals:
 npm run eval
 ```
 
+Run the opt-in local Ollama smoke test:
+
+```bash
+npm run test:ollama
+```
+
 Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. Current coverage includes desktop and mobile Playwright workflows, generated Foundry scaffold compilation, and action-driven target-vault execution with protocol-specific accounting assertions when `forge` is available locally.
 
 ## Evidence Boundaries
