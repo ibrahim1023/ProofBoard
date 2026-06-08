@@ -92,7 +92,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
 | Repo validation gates | 4 / 4 passing | lint, typecheck, test, production build |
-| Foundry generated-harness checks | 2 passing modes | scaffold compile smoke and wired offline fixture execution when local `forge` is available |
+| Foundry generated-harness checks | 2 passing modes | scaffold compile smoke and action-driven target-vault fixture execution when local `forge` is available |
 
 The eval score is a deterministic fixture score for the current release-blocker suite. ProofBoard does not yet report a model-backed LLM accuracy benchmark over real protocol corpora.
 
@@ -189,7 +189,7 @@ Run release-blocker evals:
 npm run eval
 ```
 
-Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. Current coverage includes desktop and mobile Playwright workflows, generated Foundry scaffold compilation, and wired generated-harness execution when `forge` is available locally.
+Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. Current coverage includes desktop and mobile Playwright workflows, generated Foundry scaffold compilation, and action-driven target-vault execution with protocol-specific accounting assertions when `forge` is available locally.
 
 ## Evidence Boundaries
 

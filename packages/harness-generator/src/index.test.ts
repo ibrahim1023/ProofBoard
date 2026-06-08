@@ -108,7 +108,7 @@ describe("generateFoundryHarnessBundle", () => {
     }
   });
 
-  it.runIf(forgeAvailable())("executes generated invariants after wiring the target vault fixture", () => {
+  it.runIf(forgeAvailable())("executes handler actions and protocol-specific assertions against a target vault fixture", () => {
     const root = mkdtempSync(join(tmpdir(), "proofboard-wired-harness-"));
     const wiredWorkspace = {
       ...workspace,
@@ -121,9 +121,23 @@ describe("generateFoundryHarnessBundle", () => {
     try {
       writeFoundryFixture(root);
 
-      generateFoundryHarnessBundle(wiredWorkspace).files.forEach((file) => {
-        write(root, file.path, wireFixtureVault(file.path, file.content));
+      const wiredFiles = generateFoundryHarnessBundle(wiredWorkspace).files.map((file) => ({
+        ...file,
+        content: wireFixtureVault(file.path, file.content)
+      }));
+      wiredFiles.forEach((file) => {
+        write(root, file.path, file.content);
       });
+
+      expect(wiredFiles.find((file) => file.path.endsWith("ProofboardVaultInvariant.t.sol"))?.content).toContain(
+        "handler.deposit(100 ether, 0);"
+      );
+      expect(wiredFiles.find((file) => file.path.endsWith("VaultHandler.sol"))?.content).toContain(
+        "FixtureVault(vault).deposit(assets, address(this));"
+      );
+      expect(wiredFiles.find((file) => file.path.endsWith("VaultHandler.sol"))?.content).toContain(
+        "target.totalAssets() >= target.totalSupply()"
+      );
 
       const output = execFileSync("forge", ["test", "--offline", "--match-contract", "ProofboardVaultInvariant"], {
         cwd: root,
@@ -156,7 +170,51 @@ function write(root: string, path: string, content: string) {
 
 function writeFoundryFixture(root: string) {
   write(root, "foundry.toml", `[profile.default]\nsrc = "src"\ntest = "test"\nlibs = ["lib"]\n`);
-  write(root, "src/FixtureVault.sol", `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract FixtureVault {}`);
+  write(
+    root,
+    "src/FixtureVault.sol",
+    `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface IERC20Fixture {
+    function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+}
+
+contract FixtureVault {
+    IERC20Fixture public immutable asset;
+    uint256 public totalSupply;
+    uint256 public depositCalls;
+    uint256 public withdrawCalls;
+    mapping(address => uint256) public balanceOf;
+
+    constructor(address asset_) {
+        asset = IERC20Fixture(asset_);
+    }
+
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
+        require(asset.transferFrom(msg.sender, address(this), assets), "TRANSFER_FROM");
+        shares = assets;
+        balanceOf[receiver] += shares;
+        totalSupply += shares;
+        depositCalls += 1;
+    }
+
+    function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares) {
+        shares = assets;
+        require(balanceOf[owner] >= shares, "SHARES");
+        balanceOf[owner] -= shares;
+        totalSupply -= shares;
+        withdrawCalls += 1;
+        require(asset.transfer(receiver, assets), "TRANSFER");
+    }
+
+    function totalAssets() external view returns (uint256) {
+        return asset.balanceOf(address(this));
+    }
+}`
+  );
   write(
     root,
     "lib/forge-std/src/Test.sol",
@@ -165,9 +223,48 @@ function writeFoundryFixture(root: string) {
 }
 
 function wireFixtureVault(path: string, content: string) {
-  if (!path.endsWith("ProofboardVaultInvariant.t.sol")) {
-    return content;
+  if (path.endsWith("ProofboardVaultInvariant.t.sol")) {
+    return content
+      .replace("// vault = new FixtureVault(...);", "vault = new FixtureVault(address(asset));")
+      .replace(
+        "handler = new VaultHandler(address(vault), address(asset), actors);",
+        `handler = new VaultHandler(address(vault), address(asset), actors);
+        handler.deposit(100 ether, 0);
+        handler.withdraw(40 ether, 0);
+        handler.donate(10 ether);`
+      );
   }
 
-  return content.replace("// vault = new FixtureVault(...);", "vault = new FixtureVault();");
+  if (path.endsWith("VaultHandler.sol")) {
+    return content
+      .replace(
+        'import {MockERC20} from "../mocks/MockERC20.sol";',
+        'import {MockERC20} from "../mocks/MockERC20.sol";\nimport {FixtureVault} from "../../../src/FixtureVault.sol";'
+      )
+      .replace(
+        "// TODO: prank actor, approve vault, and call deposit.",
+        `actor;
+        MockERC20(asset).mint(address(this), assets);
+        MockERC20(asset).approve(vault, assets);
+        FixtureVault(vault).deposit(assets, address(this));`
+      )
+      .replace(
+        `actor;
+        // TODO: prank actor and call withdraw/redeem with bounded owned shares.`,
+        `actor;
+        uint256 ownedShares = FixtureVault(vault).balanceOf(address(this));
+        assets = assets > ownedShares ? ownedShares : assets;
+        if (assets > 0) FixtureVault(vault).withdraw(assets, address(this), address(this));`
+      )
+      .replace(
+        "return vault != address(0) && asset != address(0);",
+        `FixtureVault target = FixtureVault(vault);
+        return target.depositCalls() > 0
+            && target.withdrawCalls() > 0
+            && target.totalAssets() >= target.totalSupply()
+            && target.balanceOf(address(this)) == target.totalSupply();`
+      );
+  }
+
+  return content;
 }

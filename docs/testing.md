@@ -21,7 +21,7 @@ Current automated checks cover:
 - Solidity analyzer extraction, inheritance arguments, naming variants, immutable state, unusual token calls, and explicit unsupported-syntax warnings
 - property templates, skeptic checks, assumption linking, and structured LLM claim refusal gates
 - Foundry harness artifact paths, traceability, and a generated scaffold compile smoke when `forge` is available
-- wired generated-harness execution against a local target-vault Foundry fixture when `forge` is available
+- wired generated-harness execution against a local target-vault Foundry fixture, including deposit, withdraw, donation, and accounting assertions, when `forge` is available
 - Foundry output pass/fail, counterexample, parser-error, weak-handler, and unlinked-invariant handling
 - web board workflows including intake, review, harness visibility, Results parsing, Ledger updates, Export artifacts, and completed demo state
 - public-demo acceptance checks for weak invariants, unresolved assumptions, donation/inflation concern visibility, parsed Foundry evidence, and separated exports
@@ -62,7 +62,7 @@ Current automated checks cover:
 Before claiming broader support, keep adding:
 
 - realistic Foundry logs from multiple Forge output variants
-- stronger generated harness fixtures with protocol-specific handlers and assertions beyond the wired constructor smoke
+- deeper generated harness fixtures for fees, strategies, donation/inflation behavior, and adversarial token semantics
 - richer ERC4626 fixture families for adversarial strategy behavior and multi-contract source relationships
 - browser E2E checks for future responsive and runner cancellation error states as the UI surface expands
 - repeat manual QA of product wording and exported packet contents before each public release
