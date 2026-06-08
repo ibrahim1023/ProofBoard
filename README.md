@@ -44,6 +44,31 @@ Out of scope for the MVP:
 
 Deferred scope and next expansion candidates are tracked in `docs/deferred-scope.md`.
 
+## Tech Stack
+
+### Application
+
+- Next.js 16 with the App Router
+- React 19 and React DOM
+- TypeScript
+- Global CSS for the current workspace UI
+- Node.js 22 or newer
+- npm workspaces for the monorepo
+
+### Protocol Assurance
+
+- Deterministic Solidity analysis and ERC4626 property templates in local TypeScript packages
+- Foundry invariant harness generation and Forge output parsing
+- Local Forge or Docker-based verification command planning and execution
+- Structured JSON and Markdown audit-prep exports
+
+### Quality
+
+- Vitest and Testing Library for unit and component tests
+- Playwright for desktop and mobile browser workflows
+- ESLint and TypeScript compiler checks
+- Deterministic evaluation fixtures for claim, property, assumption, parser, export, and demo behavior
+
 ## Current Implementation Metrics
 
 ### Product Surface
