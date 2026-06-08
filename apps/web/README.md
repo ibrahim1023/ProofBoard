@@ -34,3 +34,6 @@ Current implementation:
 - interactive protocol map, intent board, invariant board, assumption debt, ledger, harness, results, and export views
 - reviewer identity, claim/property comments, approval/edit/rejection history, and rejected-claim rationale
 - parsed Foundry evidence, verification readiness, harness quality, and vacuity review
+- Ollama-compatible local claim generation with schema validation, insufficient-evidence refusal handling, and mandatory human review
+
+Local claim generation defaults to `http://127.0.0.1:11434` and model `qwen2.5-coder:7b`. Set `OLLAMA_BASE_URL` on the Next.js server to use another Ollama-compatible endpoint; the model can be changed from the Intent Board.

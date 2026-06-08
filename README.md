@@ -29,7 +29,7 @@ In scope:
 - Foundry results parsing from pasted or uploaded raw output, including invariant pass/fail status, counterexample or sequence text, weak handler signals, vacuity metrics, and evidence updates in the ledger.
 - Harness quality and vacuity review for generated handlers, adversarial mocks, missing core-flow exercise, low call counts, unreached handlers, missing actor evidence, and passing invariants that do not visibly touch critical flows.
 - Audit packet exports for the assurance report, executive summary, approved protocol intent, unresolved assumption table, verification evidence appendix, failed/fuzzy evidence details, suggested auditor questions, ledger JSON, verification readiness, harness quality, vacuity report, assumption debt, protocol map, approved properties, Foundry scaffold bundle, and audit prep focus.
-- No-LLM template mode as a first-class path, with structured local and optional hosted LLM claim boundaries that cannot bypass human review.
+- No-LLM template mode as a first-class path, plus an Ollama-compatible local claim adapter and optional hosted LLM boundary that cannot bypass schema validation or human review.
 - Deterministic release-blocker evals for claim extraction, unsupported structured claims, property coverage, weak invariants, assumption generation, Foundry parser fixtures, audit packet completeness, and demo schema validity.
 - ERC4626 demo assets and a completed demo load path for showing claims, invariants, assumption debt, parsed fuzz output, the final ledger, and export prep.
 - Guided public-demo workflow with deterministic acceptance checks for weak invariants, unresolved assumptions, donation/inflation concern visibility, parsed Foundry evidence, and separated audit-prep exports.
@@ -87,7 +87,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 84 passing | `npm test` |
+| Unit and eval assertions | 89 passing | `npm test` |
 | Browser E2E checks | 12 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
@@ -112,7 +112,7 @@ The web app in `apps/web` is the main ProofBoard surface. It provides project in
 
 ### Property Engine
 
-`packages/property-engine` generates template-based ERC4626 claims, properties, token assumptions, property-to-assumption links, and skeptic review findings. It also validates structured local or hosted LLM claim payloads and accepts insufficient-evidence refusals. Generated claims and properties never become approved or proven automatically.
+`packages/property-engine` generates template-based ERC4626 claims, properties, token assumptions, property-to-assumption links, and skeptic review findings. It also validates structured local or hosted LLM claim payloads and accepts insufficient-evidence refusals. The web app can call an Ollama-compatible local model through `/api/generate-claims`; the adapter sends bounded source and protocol-map context, requests schema-constrained JSON, and revalidates the response before adding AI-inferred claims. Generated claims and properties never become approved or proven automatically.
 
 ### Harness Generator
 

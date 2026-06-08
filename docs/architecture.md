@@ -46,10 +46,10 @@ Backend and analysis:
 
 ## LLM Modes
 
-ProofBoard should support:
+ProofBoard supports:
 
 - no LLM mode using ERC4626 templates
-- local LLM mode through Ollama-compatible models
-- optional hosted LLM mode
+- local LLM mode through the server-side `/api/generate-claims` Ollama-compatible adapter
+- an optional hosted LLM validation boundary without a hosted transport implementation
 
-Hosted LLMs may improve quality but must not be mandatory for the core workflow.
+The local adapter keeps its base URL in server configuration, bounds submitted source content, requests non-streaming schema-constrained JSON, and validates the returned envelope with the property engine. Valid claims remain `AI-inferred`; insufficient source evidence is represented as an explicit refusal. Hosted LLMs may improve quality but must not be mandatory for the core workflow.

@@ -84,6 +84,8 @@ export function ProofboardWorkspace() {
   "reason": "Local or hosted adapter did not return source-backed claims."
 }`);
   const [llmClaimNotice, setLlmClaimNotice] = useState<string[]>([]);
+  const [localLlmModel, setLocalLlmModel] = useState("qwen2.5-coder:7b");
+  const [localLlmBusy, setLocalLlmBusy] = useState(false);
   const [foundryOutput, setFoundryOutput] = useState(demoFoundryOutput);
   const [resultNotice, setResultNotice] = useState<string[]>([]);
   const [runnerMode, setRunnerMode] = useState<RunnerMode>("docker");
@@ -197,9 +199,9 @@ export function ProofboardWorkspace() {
     }));
   }
 
-  function importStructuredClaims() {
+  function importStructuredClaims(payload = llmClaimPayload) {
     try {
-      const validated = validateLlmClaimEnvelope(JSON.parse(llmClaimPayload) as unknown, workspace.protocolMap);
+      const validated = validateLlmClaimEnvelope(JSON.parse(payload) as unknown, workspace.protocolMap);
       setLlmClaimNotice(validated.refusal ? [`Insufficient evidence: ${validated.refusal}`] : validated.issues);
 
       if (validated.issues.length === 0 && validated.claims.length > 0) {
@@ -210,6 +212,42 @@ export function ProofboardWorkspace() {
       }
     } catch {
       setLlmClaimNotice(["Structured claim payload must be valid JSON."]);
+    }
+  }
+
+  async function generateLocalClaims() {
+    setLocalLlmBusy(true);
+    setLlmClaimNotice([]);
+
+    try {
+      const response = await fetch("/api/generate-claims", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: localLlmModel,
+          protocolMap: workspace.protocolMap,
+          sources: workspace.sources
+        })
+      });
+      const result = (await response.json()) as {
+        ok?: boolean;
+        payload?: unknown;
+        errors?: string[];
+        model?: string;
+      };
+
+      if (!response.ok || !result.ok || result.payload === undefined) {
+        setLlmClaimNotice(result.errors?.length ? result.errors : ["Local model did not return a claim payload."]);
+        return;
+      }
+
+      const payload = JSON.stringify(result.payload, null, 2);
+      setLlmClaimPayload(payload);
+      importStructuredClaims(payload);
+    } catch {
+      setLlmClaimNotice(["Could not reach the local claim adapter."]);
+    } finally {
+      setLocalLlmBusy(false);
     }
   }
 
@@ -620,8 +658,28 @@ export function ProofboardWorkspace() {
                   />
                 </label>
                 <div className="stack">
+                  {claimMode === "local_llm" && (
+                    <label>
+                      Ollama model
+                      <input
+                        onChange={(event) => setLocalLlmModel(event.target.value)}
+                        spellCheck={false}
+                        value={localLlmModel}
+                      />
+                    </label>
+                  )}
                   <div className="action-row">
-                    <button className="primary-action" onClick={importStructuredClaims} type="button">
+                    {claimMode === "local_llm" && (
+                      <button
+                        className="primary-action"
+                        disabled={localLlmBusy}
+                        onClick={generateLocalClaims}
+                        type="button"
+                      >
+                        {localLlmBusy ? "Generating..." : "Generate with local model"}
+                      </button>
+                    )}
+                    <button className="primary-action" onClick={() => importStructuredClaims()} type="button">
                       Validate claim payload
                     </button>
                     <StatusPill label={claimMode === "hosted_llm" ? "optional hosted boundary" : "local adapter boundary"} />

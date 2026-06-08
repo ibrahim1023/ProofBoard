@@ -5,6 +5,7 @@ import Home from "./page";
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("ProofBoard workspace", () => {
@@ -99,6 +100,41 @@ describe("ProofBoard workspace", () => {
 
     expect(screen.getByText("Adapters preserve user claims")).toBeInTheDocument();
     expect(screen.getAllByText("AI-inferred").length).toBeGreaterThan(0);
+  });
+
+  it("generates local claims through the Ollama adapter and keeps human review required", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ok: true,
+            model: "qwen2.5-coder:7b",
+            payload: {
+              status: "proposed",
+              claims: [
+                {
+                  title: "Local model claim",
+                  text: "A local model claim should remain AI-inferred until a reviewer approves its source-backed intent.",
+                  source: ["ExampleVault.sol"],
+                  confidence: 0.66,
+                  severity: "medium"
+                }
+              ]
+            }
+          })
+        )
+      )
+    );
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Intent Board" }));
+    fireEvent.change(screen.getByLabelText("Claim mode"), { target: { value: "local_llm" } });
+    fireEvent.click(screen.getByRole("button", { name: "Generate with local model" }));
+
+    expect(await screen.findByText("Local model claim")).toBeInTheDocument();
+    expect(screen.getAllByText("AI-inferred").length).toBeGreaterThan(0);
+    expect((screen.getByLabelText("Structured claim payload") as HTMLTextAreaElement).value).toContain("Local model claim");
   });
 
   it("reports insufficient LLM evidence without adding claims", () => {

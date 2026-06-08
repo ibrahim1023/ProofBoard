@@ -19,7 +19,7 @@ Current automated checks cover:
 
 - shared schema validation and workspace claim/property/assumption/evidence link integrity
 - Solidity analyzer extraction, inheritance arguments, naming variants, immutable state, unusual token calls, and explicit unsupported-syntax warnings
-- property templates, skeptic checks, assumption linking, and structured LLM claim refusal gates
+- property templates, skeptic checks, assumption linking, structured LLM claim refusal gates, and mocked Ollama adapter responses
 - Foundry harness artifact paths, traceability, and a generated scaffold compile smoke when `forge` is available
 - wired generated-harness execution against a local target-vault Foundry fixture, including deposit, withdraw, donation, and accounting assertions, when `forge` is available
 - Foundry output pass/fail, counterexample, parser-error, weak-handler, and unlinked-invariant handling
@@ -35,7 +35,7 @@ Current automated checks cover:
 
 | Surface | Automated checks | Command |
 |---|---:|---|
-| Web component, API, export, and demo tests | 31 | `npm test` |
+| Web component, API, export, and demo tests | 36 | `npm test` |
 | Shared schema and link validation | 7 | `npm test` |
 | Solidity analyzer fixtures | 10 | `npm test` |
 | ERC4626 property-engine fixtures | 10 | `npm test` |
@@ -45,7 +45,7 @@ Current automated checks cover:
 | Deterministic eval assertions | 7 | `npm test` and `npm run eval` |
 | Browser E2E checks | 12 | `npm run test:e2e` |
 
-`npm test` currently covers 84 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
+`npm test` currently covers 89 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
 
 ### Eval And Validation Metrics
 
