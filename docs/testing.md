@@ -24,7 +24,8 @@ Current automated checks cover:
 - wired generated-harness execution against a local target-vault Foundry fixture when `forge` is available
 - Foundry output pass/fail, counterexample, parser-error, weak-handler, and unlinked-invariant handling
 - web board workflows including intake, review, harness visibility, Results parsing, Ledger updates, Export artifacts, and completed demo state
-- Playwright E2E workflows on desktop and mobile Chrome for project intake, browser navigation, Foundry log upload, parsed ledger evidence, harness download, and audit packet download
+- public-demo acceptance checks for weak invariants, unresolved assumptions, donation/inflation concern visibility, parsed Foundry evidence, and separated exports
+- Playwright E2E workflows on desktop and mobile Chrome for project intake, browser navigation, Foundry log upload, parsed ledger evidence, completed public demo, harness download, and audit packet download
 - ERC4626 fixture shapes covering fee controls, strategy liquidity assumptions, donation-sensitive token calls, donation/inflation templates, and vault-like sources without explicit ERC4626 inheritance
 - deterministic release-blocker eval fixtures for claim, property, assumption, result-parser, audit-packet, and demo schema behavior
 
@@ -34,17 +35,17 @@ Current automated checks cover:
 
 | Surface | Automated checks | Command |
 |---|---:|---|
-| Web component, API, and export tests | 20 | `npm test` |
-| Shared schema and link validation | 6 | `npm test` |
+| Web component, API, export, and demo tests | 31 | `npm test` |
+| Shared schema and link validation | 7 | `npm test` |
 | Solidity analyzer fixtures | 7 | `npm test` |
 | ERC4626 property-engine fixtures | 10 | `npm test` |
 | Foundry harness-generator fixtures | 4 | `npm test` |
 | Foundry verification-runner fixtures | 7 | `npm test` |
 | Foundry result-parser fixtures | 8 | `npm test` |
 | Deterministic eval assertions | 7 | `npm test` and `npm run eval` |
-| Browser E2E checks | 6 | `npm run test:e2e` |
+| Browser E2E checks | 8 | `npm run test:e2e` |
 
-`npm test` currently covers 69 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
+`npm test` currently covers 81 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
 
 ### Eval And Validation Metrics
 
@@ -64,4 +65,4 @@ Before claiming broader support, keep adding:
 - stronger generated harness fixtures with protocol-specific handlers and assertions beyond the wired constructor smoke
 - richer ERC4626 fixture families for unsupported Solidity constructs, non-standard naming, and adversarial strategy behavior
 - browser E2E checks for additional empty and error states as the UI surface expands
-- manual QA of product wording and exported packet contents before a public demo
+- repeat manual QA of product wording and exported packet contents before each public release

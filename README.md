@@ -32,6 +32,7 @@ In scope:
 - No-LLM template mode as a first-class path, with structured local and optional hosted LLM claim boundaries that cannot bypass human review.
 - Deterministic release-blocker evals for claim extraction, unsupported structured claims, property coverage, weak invariants, assumption generation, Foundry parser fixtures, audit packet completeness, and demo schema validity.
 - ERC4626 demo assets and a completed demo load path for showing claims, invariants, assumption debt, parsed fuzz output, the final ledger, and export prep.
+- Guided public-demo workflow with deterministic acceptance checks for weak invariants, unresolved assumptions, donation/inflation concern visibility, parsed Foundry evidence, and separated audit-prep exports.
 
 Out of scope for the MVP:
 
@@ -61,8 +62,8 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 78 passing | `npm test` |
-| Browser E2E checks | 6 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
+| Unit and eval assertions | 81 passing | `npm test` |
+| Browser E2E checks | 8 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
 | Repo validation gates | 4 / 4 passing | lint, typecheck, test, production build |
@@ -110,7 +111,7 @@ Generated harnesses are traceable to selected ProofBoard property ids. They are 
 
 ### Evaluations And Demo
 
-`evals` runs deterministic release-blocker checks before ProofBoard expands claim, property, parser, or export behavior. `examples/erc4626-vault` provides the demo vault, protocol notes, expected claims, reviewed claim state, generated invariant examples, assumption debt, sample Foundry output, final ledger fixture, and export preview used for the MVP walkthrough.
+`evals` runs deterministic release-blocker checks before ProofBoard expands claim, property, parser, or export behavior. `examples/erc4626-vault` provides the demo vault, protocol notes, expected claims, reviewed claim state, generated invariant examples, assumption debt, sample Foundry output, final ledger fixture, and export preview. The Project board includes a guided public-demo script, while `docs/public-demo.md` defines the operator walkthrough, acceptance criteria, and wording boundaries.
 
 ## Repository Layout
 

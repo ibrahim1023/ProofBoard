@@ -1,6 +1,6 @@
 # Web App
 
-This directory will contain the ProofBoard web workspace.
+This directory contains the ProofBoard Next.js and React workspace.
 
 Expected surfaces:
 
@@ -13,7 +13,8 @@ Expected surfaces:
 - verification ledger
 - generated harness screen
 - results screen
-- audit packet export
+- guided ERC4626 public demo with explicit acceptance criteria
+- separated audit packet exports for executive review, approved intent, assumption debt, evidence, failed/fuzzy results, and auditor questions
 
 Recommended stack:
 
@@ -22,7 +23,7 @@ Recommended stack:
 - CSS modules/global CSS for the current scaffold
 - shadcn/ui, Monaco editor, and React Flow in later phases
 
-Current Phase 1 implementation:
+Current implementation:
 
 - project intake form
 - protocol type selector
@@ -30,4 +31,6 @@ Current Phase 1 implementation:
 - disabled repo zip upload placeholder
 - seeded ERC4626 demo workspace
 - navigation for all MVP boards
-- static protocol map, intent board, invariant board, assumption debt, ledger, harness, results, and export views
+- interactive protocol map, intent board, invariant board, assumption debt, ledger, harness, results, and export views
+- reviewer identity, claim/property comments, approval/edit/rejection history, and rejected-claim rationale
+- parsed Foundry evidence, verification readiness, harness quality, and vacuity review
