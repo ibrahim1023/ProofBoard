@@ -1,5 +1,11 @@
-import type { Claim } from "@proofboard/shared-types";
 import type { OllamaEvalCase } from "./model-datasets";
+
+interface EvaluatedClaim {
+  title: string;
+  text: string;
+  source: string[];
+  relatedFunctions: string[];
+}
 
 export interface OllamaCaseResult {
   id: string;
@@ -92,7 +98,7 @@ export function summarizeOllamaEval(results: OllamaCaseResult[]): OllamaEvalSumm
   return summary;
 }
 
-function groundedClaimRatio(claims: Claim[], item: OllamaEvalCase) {
+function groundedClaimRatio(claims: EvaluatedClaim[], item: OllamaEvalCase) {
   const groundingTerms = new Set(
     [
       ...item.sources.flatMap((source) => [source.path, ...words(source.path), ...words(source.content)]),
@@ -111,7 +117,7 @@ function groundedClaimRatio(claims: Claim[], item: OllamaEvalCase) {
   );
 }
 
-function usefulClaimRatio(claims: Claim[]) {
+function usefulClaimRatio(claims: EvaluatedClaim[]) {
   const prohibited = ["protocol is safe", "guaranteed safe", "vulnerability-free", "no vulnerabilities"];
   return average(
     claims.map((claim) => {
@@ -126,20 +132,27 @@ function usefulClaimRatio(claims: Claim[]) {
   );
 }
 
-function expectedConceptCoverage(claims: Claim[], expectedConcepts: string[][]) {
+function expectedConceptCoverage(claims: EvaluatedClaim[], expectedConcepts: string[][]) {
   const combined = claims.map((claim) => `${claim.title} ${claim.text} ${claim.relatedFunctions.join(" ")}`.toLowerCase()).join(" ");
   return average(expectedConcepts.map((group) => Number(group.every((concept) => combined.includes(concept)))));
 }
 
-function isClaimShape(value: unknown): value is Claim {
-  return (
-    isRecord(value) &&
-    typeof value.title === "string" &&
-    typeof value.text === "string" &&
-    Array.isArray(value.source) &&
-    value.source.every((item) => typeof item === "string") &&
-    Array.isArray(value.relatedFunctions)
-  );
+function isClaimShape(value: unknown): value is EvaluatedClaim {
+  if (
+    !isRecord(value) ||
+    typeof value.title !== "string" ||
+    typeof value.text !== "string" ||
+    !Array.isArray(value.source) ||
+    !value.source.every((item) => typeof item === "string")
+  ) {
+    return false;
+  }
+
+  if (value.relatedFunctions === undefined) {
+    value.relatedFunctions = [];
+  }
+
+  return Array.isArray(value.relatedFunctions) && value.relatedFunctions.every((item) => typeof item === "string");
 }
 
 function words(value: string) {

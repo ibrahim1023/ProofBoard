@@ -63,9 +63,11 @@ Current automated checks cover:
 
 ### Opt-In Ollama Smoke
 
-`npm run test:ollama` probes `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`) for `OLLAMA_MODEL` (default `qwen2.5-coder:7b`). If available, it checks a source-backed proposal and an unsupported-input refusal. The run reports model, prompt version, dataset version, date, latency, and Ollama token metrics. It is not part of deterministic release gates and is not a quality benchmark.
+`npm run test:ollama` probes `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`) for `OLLAMA_MODEL` (default `llama3.1:8b`). If available, it checks a source-backed proposal and an unsupported-input refusal. The run reports model, prompt version, dataset version, date, latency, and Ollama token metrics. It is not part of deterministic release gates and is not a quality benchmark.
 
 `npm run eval:ollama` is the stricter model-backed suite. Unlike the smoke command, it fails when Ollama or the selected model is unavailable. It evaluates two source-backed ERC4626 cases and one refusal case, requires 100% schema validity and refusal accuracy, at least 75% source grounding and usefulness, and at least 50% expected-concept coverage. Runtime varies by local hardware and is reported rather than used as a release threshold.
+
+Latest local run on June 9, 2026 used `llama3.1:8b` with prompt `ollama-claims-v2` and dataset `erc4626-claims-v1`: 100% schema validity, 100% refusal accuracy, 80% source grounding, 100% usefulness, 50% concept coverage, and 10.25 seconds average latency across three cases. `qwen2.5-coder:7b` failed the proposal smoke by refusing analyzed Solidity evidence, so it is not the default model.
 
 ## Remaining High-Value Gates
 

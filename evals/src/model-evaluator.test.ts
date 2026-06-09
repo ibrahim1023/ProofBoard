@@ -81,7 +81,7 @@ async function resolveModel(url: string, requestedModel?: string): Promise<{ mod
         : { error: `Requested model ${requestedModel} is not installed. Installed models: ${installed.join(", ") || "none"}.` };
     }
 
-    const preferred = ["qwen2.5-coder:7b", "qwen2.5:7b", "llama3.1:8b", "deepseek-coder-v2:16b"];
+    const preferred = ["llama3.1:8b", "qwen2.5-coder:7b", "qwen2.5:7b", "deepseek-coder-v2:16b"];
     const selected = preferred.find((candidate) => installed.includes(candidate)) ?? installed[0];
     return selected ? { model: selected } : { error: "Ollama is running but has no installed models." };
   } catch {

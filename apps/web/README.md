@@ -36,6 +36,6 @@ Current implementation:
 - parsed Foundry evidence, verification readiness, harness quality, and vacuity review
 - Ollama-compatible local claim generation with schema validation, insufficient-evidence refusal handling, and mandatory human review
 
-Local claim generation defaults to `http://127.0.0.1:11434` and model `qwen2.5-coder:7b`. Set `OLLAMA_BASE_URL` on the Next.js server to use another Ollama-compatible endpoint; the model can be changed from the Intent Board.
+Local claim generation defaults to `http://127.0.0.1:11434` and model `llama3.1:8b`. Set `OLLAMA_BASE_URL` on the Next.js server to use another Ollama-compatible endpoint; the model can be changed from the Intent Board.
 
 Run `npm run test:ollama` for the opt-in live smoke test. Set `OLLAMA_MODEL` when using another installed model. The smoke test probes local availability before checking one source-backed proposal and one insufficient-evidence refusal.

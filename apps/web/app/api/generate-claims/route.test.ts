@@ -10,7 +10,7 @@ describe("local claim adapter API", () => {
   it("validates bounded model, protocol map, and source requests", () => {
     expect(
       parseLocalClaimRequest({
-        model: "qwen2.5-coder:7b",
+        model: "llama3.1:8b",
         protocolMap: demoWorkspace.protocolMap,
         sources: demoWorkspace.sources
       }).errors
@@ -32,6 +32,7 @@ describe("local claim adapter API", () => {
 
     const prompt = buildLocalClaimPrompt(parsed.request!);
     expect(prompt).toContain("insufficient_evidence");
+    expect(prompt).toContain("You MUST use status proposed");
     expect(prompt).toContain(demoWorkspace.sources[0].path);
     expect(prompt).toContain("PROTOCOL MAP:");
   });

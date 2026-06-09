@@ -84,7 +84,7 @@ export function ProofboardWorkspace() {
   "reason": "Local or hosted adapter did not return source-backed claims."
 }`);
   const [llmClaimNotice, setLlmClaimNotice] = useState<string[]>([]);
-  const [localLlmModel, setLocalLlmModel] = useState("qwen2.5-coder:7b");
+  const [localLlmModel, setLocalLlmModel] = useState("llama3.1:8b");
   const [localLlmBusy, setLocalLlmBusy] = useState(false);
   const [foundryOutput, setFoundryOutput] = useState(demoFoundryOutput);
   const [resultNotice, setResultNotice] = useState<string[]>([]);

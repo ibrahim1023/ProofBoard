@@ -4,7 +4,7 @@ import { POST, localClaimPromptVersion } from "./route";
 
 const smokeEnabled = process.env.OLLAMA_SMOKE === "1";
 const baseUrl = (process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434").replace(/\/+$/, "");
-const model = process.env.OLLAMA_MODEL ?? "qwen2.5-coder:7b";
+const model = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
 const datasetVersion = "ollama-smoke-v1";
 const availability = smokeEnabled ? await findLocalModel(baseUrl, model) : { available: false, detail: "disabled" };
 
@@ -77,11 +77,14 @@ describe.runIf(smokeEnabled && availability.available)("live Ollama claim adapte
         ]
       });
 
-      expect(proposed.response.status).toBe(200);
-      expect(proposed.body).toMatchObject({ ok: true, payload: { status: "proposed" } });
+      expect(proposed.response.status, JSON.stringify(proposed.body)).toBe(200);
+      expect(proposed.body, JSON.stringify(proposed.body)).toMatchObject({ ok: true, payload: { status: "proposed" } });
       expect(proposed.body.payload.claims.length).toBeGreaterThan(0);
-      expect(refused.response.status).toBe(200);
-      expect(refused.body).toMatchObject({ ok: true, payload: { status: "insufficient_evidence" } });
+      expect(refused.response.status, JSON.stringify(refused.body)).toBe(200);
+      expect(refused.body, JSON.stringify(refused.body)).toMatchObject({
+        ok: true,
+        payload: { status: "insufficient_evidence" }
+      });
       expect(refused.body.payload.reason).toEqual(expect.any(String));
 
       console.info(

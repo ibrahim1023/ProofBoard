@@ -40,6 +40,8 @@ npm run eval:ollama
 
 It requires a running Ollama service. `OLLAMA_MODEL` selects an installed model; otherwise the evaluator prefers common Qwen, Llama, or DeepSeek coding/instruct models and falls back to the first installed model. The versioned dataset covers vault accounting claims, pause/admin claims, and unsupported-evidence refusal. Reports are written to `evals/results/latest-ollama-eval.json` and include model, prompt version, dataset version, run date, case scores, latency, and token metrics.
 
+The latest measured passing baseline is `llama3.1:8b` with prompt `ollama-claims-v2`: 100% schema validity, 100% refusal accuracy, 80% source grounding, 100% usefulness, 50% concept coverage, and 10.25 seconds average latency. The accounting case met grounding/usefulness requirements but missed the stricter expected-concept groups, so broader claim coverage remains a quality target rather than a completed capability.
+
 ## Current Scorecard
 
 | Signal | Current score | Source |

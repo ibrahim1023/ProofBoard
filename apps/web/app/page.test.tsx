@@ -109,7 +109,7 @@ describe("ProofBoard workspace", () => {
         new Response(
           JSON.stringify({
             ok: true,
-            model: "qwen2.5-coder:7b",
+            model: "llama3.1:8b",
             payload: {
               status: "proposed",
               claims: [

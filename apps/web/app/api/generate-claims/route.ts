@@ -3,9 +3,9 @@ import type { ProtocolMap, SourceFile } from "@proofboard/shared-types";
 
 export const runtime = "nodejs";
 
-const defaultModel = "qwen2.5-coder:7b";
+const defaultModel = "llama3.1:8b";
 const maxSourceCharacters = 40_000;
-export const localClaimPromptVersion = "ollama-claims-v1";
+export const localClaimPromptVersion = "ollama-claims-v2";
 
 const claimEnvelopeSchema = {
   type: "object",
@@ -31,7 +31,7 @@ const claimEnvelopeSchema = {
       }
     }
   },
-  required: ["status"]
+  required: ["status", "reason", "claims"]
 } as const;
 
 interface LocalClaimRequest {
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "You propose source-backed protocol assurance claims for human review. Never claim safety. Refuse with status insufficient_evidence when the supplied sources do not support a claim."
+              "You propose source-backed protocol assurance claims for human review. Supplied source code and protocol-map facts count as evidence for behavioral claims; no external audit is required. Never claim safety. Use status proposed with a non-empty claims array when the supplied material supports concrete behavior. Use status insufficient_evidence only when it supports no reviewable claim, with a non-empty reason and an empty claims array. Never mix refusal status with proposed claims."
           },
           {
             role: "user",
@@ -161,6 +161,12 @@ export function parseLocalClaimRequest(value: unknown): { request?: LocalClaimRe
 
 export function buildLocalClaimPrompt(request: LocalClaimRequest) {
   const sourceText = request.sources.map((source) => `FILE: ${source.path}\n${source.content}`).join("\n\n");
+  const hasAnalyzedSolidity =
+    request.protocolMap.contracts.length > 0 &&
+    request.sources.some((source) => source.language === "solidity" && source.content.trim().length > 0);
+  const evidenceDirective = hasAnalyzedSolidity
+    ? "EVIDENCE DECISION: Analyzed Solidity and contract-map evidence is present. You MUST use status proposed and produce source-backed claims."
+    : "EVIDENCE DECISION: No analyzed Solidity contract evidence is present. Use status insufficient_evidence unless the non-code sources contain concrete protocol behavior.";
   const mapSummary = {
     contracts: request.protocolMap.contracts.map((contract) => ({
       name: contract.name,
@@ -173,9 +179,14 @@ export function buildLocalClaimPrompt(request: LocalClaimRequest) {
     parserWarnings: request.protocolMap.parserWarnings
   };
 
-  return `Return only JSON matching the supplied schema. Propose no more than six reviewable claims.
+  return `Return only JSON matching the supplied schema. Always include status, reason, and claims.
+For status proposed, set reason to an empty string and propose one to six reviewable claims.
+For status insufficient_evidence, provide a concrete reason and set claims to an empty array.
 Each claim must cite concrete source labels and remain AI-inferred until human approval.
-Use insufficient_evidence when source support is missing or parser warnings make the claim unreliable.
+Treat supplied code and protocol-map facts as source evidence for observable behavior and intended assurance properties.
+Use insufficient_evidence only when no supplied material supports a reviewable claim or parser warnings make all claims unreliable.
+
+${evidenceDirective}
 
 PROTOCOL MAP:
 ${JSON.stringify(mapSummary, null, 2)}
