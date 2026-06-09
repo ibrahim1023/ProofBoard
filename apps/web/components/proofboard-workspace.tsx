@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { analyzeSoliditySource } from "@proofboard/analyzer";
 import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
 import { applyFoundryOutput, parseFoundryOutput } from "@proofboard/result-parser";
@@ -93,6 +93,7 @@ export function ProofboardWorkspace() {
   const [runnerDockerImage, setRunnerDockerImage] = useState("ghcr.io/foundry-rs/foundry:stable");
   const [runnerNotice, setRunnerNotice] = useState<string[]>([]);
   const [runnerBusy, setRunnerBusy] = useState(false);
+  const runnerAbortController = useRef<AbortController | null>(null);
   const [reviewerIdentity, setReviewerIdentity] = useState("Security lead");
   const [claimCommentDrafts, setClaimCommentDrafts] = useState<Record<string, string>>({});
   const [claimRejectionDrafts, setClaimRejectionDrafts] = useState<Record<string, string>>({});
@@ -367,6 +368,8 @@ export function ProofboardWorkspace() {
   }
 
   async function runPlannedFoundryCommand() {
+    const abortController = new AbortController();
+    runnerAbortController.current = abortController;
     setRunnerBusy(true);
     setRunnerNotice(["Running planned Foundry command. Captured output will still need parsing before it becomes ledger evidence."]);
 
@@ -378,25 +381,58 @@ export function ProofboardWorkspace() {
           mode: runnerMode,
           projectPath: runnerProjectPath,
           dockerImage: runnerMode === "docker" ? runnerDockerImage : undefined
-        })
+        }),
+        signal: abortController.signal
       });
-      const payload = (await response.json()) as RunnerApiResponse;
 
-      if (!response.ok || !payload.execution) {
-        setRunnerNotice(payload.errors && payload.errors.length > 0 ? payload.errors : ["Runner request failed before execution."]);
+      if (!response.ok || !response.body) {
+        const payload = (await response.json()) as { errors?: string[] };
+        setRunnerNotice(payload.errors?.length ? payload.errors : ["Runner request failed before execution."]);
         return;
       }
 
-      setFoundryOutput(payload.execution.rawOutput);
-      setRunnerNotice([
-        `Runner finished with status ${payload.execution.status}${payload.execution.exitCode === undefined ? "" : ` and exit code ${payload.execution.exitCode}`}.`,
-        "Review the captured output, then parse it to update the ledger."
-      ]);
+      setFoundryOutput("");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let pending = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        pending += decoder.decode(value, { stream: !done });
+        const lines = pending.split("\n");
+        pending = lines.pop() ?? "";
+        lines.filter(Boolean).forEach((line) => handleRunnerStreamEvent(JSON.parse(line) as RunnerStreamEvent));
+        if (done) break;
+      }
     } catch {
-      setRunnerNotice(["Runner request failed. Confirm the local ProofBoard server is running and Docker or Forge is available."]);
+      setRunnerNotice(
+        abortController.signal.aborted
+          ? ["Runner cancellation requested. Partial output remains available for review."]
+          : ["Runner request failed. Confirm the local ProofBoard server is running and Docker or Forge is available."]
+      );
     } finally {
+      runnerAbortController.current = null;
       setRunnerBusy(false);
     }
+  }
+
+  function handleRunnerStreamEvent(event: RunnerStreamEvent) {
+    if (event.type === "output") {
+      setFoundryOutput((current) => current + event.chunk);
+      return;
+    }
+
+    setRunnerNotice([
+      `Runner finished with status ${event.execution.status}${event.execution.exitCode === undefined ? "" : ` and exit code ${event.execution.exitCode}`}.`,
+      event.execution.status === "cancelled"
+        ? "Partial output remains reviewable but should not be treated as completed verification evidence."
+        : "Review the captured output, then parse it to update the ledger."
+    ]);
+  }
+
+  function cancelFoundryRun() {
+    runnerAbortController.current?.abort();
+    setRunnerNotice(["Cancelling the active Foundry run. Partial output remains available for review."]);
   }
 
   async function uploadFoundryOutput(file?: File) {
@@ -1062,6 +1098,11 @@ export function ProofboardWorkspace() {
                   <button className="secondary-action" disabled={runnerBusy} onClick={() => void runPlannedFoundryCommand()} type="button">
                     {runnerBusy ? "Running..." : "Run planned command"}
                   </button>
+                  {runnerBusy && (
+                    <button className="secondary-action" onClick={cancelFoundryRun} type="button">
+                      Cancel run
+                    </button>
+                  )}
                   <button className="primary-action" onClick={parseResults} type="button">
                     Parse Foundry output
                   </button>
@@ -1133,15 +1174,15 @@ export function ProofboardWorkspace() {
   );
 }
 
-interface RunnerApiResponse {
-  ok: boolean;
-  errors?: string[];
-  execution?: {
-    status: "passed" | "failed" | "errored";
-    rawOutput: string;
-    exitCode?: number;
-  };
-}
+type RunnerStreamEvent =
+  | { type: "output"; stream: "stdout" | "stderr"; chunk: string }
+  | {
+      type: "complete";
+      execution: {
+        status: "passed" | "failed" | "errored" | "cancelled";
+        exitCode?: number;
+      };
+    };
 
 function Metric({ label, value, suffix = "" }: { label: string; value: number; suffix?: string }) {
   return (

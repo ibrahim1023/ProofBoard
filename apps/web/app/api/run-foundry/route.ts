@@ -1,5 +1,11 @@
 import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
-import { createFoundryRunPlan, runFoundryPlan, type RunnerMode, type RunnerOptions } from "@proofboard/verification-runner";
+import {
+  createFoundryRunPlan,
+  streamFoundryPlan,
+  type RunnerMode,
+  type RunnerOptions,
+  type RunnerStreamEvent
+} from "@proofboard/verification-runner";
 import type { Workspace } from "@proofboard/shared-types";
 import { isAbsolute } from "node:path";
 
@@ -57,9 +63,39 @@ export async function POST(request: Request) {
 
   const harness = generateFoundryHarnessBundle(runnerWorkspace);
   const plan = createFoundryRunPlan(runnerWorkspace, harness, parsed.options);
-  const execution = await runFoundryPlan(plan);
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      void streamFoundryPlan(
+        plan,
+        (event) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`)),
+        request.signal
+      )
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : "Runner execution failed.";
+          const event: RunnerStreamEvent = {
+            type: "complete",
+            execution: {
+              plan,
+              status: "errored",
+              stdout: "",
+              stderr: message,
+              rawOutput: message,
+              exitCode: 1
+            }
+          };
+          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+        })
+        .finally(() => controller.close());
+    }
+  });
 
-  return Response.json({ ok: execution.status === "passed", execution });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store"
+    }
+  });
 }
 
 export function parseRunnerRequest(value: unknown): RunnerRequestResult {

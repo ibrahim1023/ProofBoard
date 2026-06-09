@@ -27,6 +27,7 @@ Current automated checks cover:
 - Foundry harness artifact paths, traceability, and a generated scaffold compile smoke when `forge` is available
 - wired generated-harness execution against a local target-vault Foundry fixture, including deposit, withdraw, donation, and accounting assertions, when `forge` is available
 - Foundry output pass/fail, counterexample, parser-error, weak-handler, and unlinked-invariant handling
+- streamed Foundry stdout/stderr, cancellation status, and partial-output preservation
 - web board workflows including intake, review, harness visibility, Results parsing, Ledger updates, Export artifacts, and completed demo state
 - public-demo acceptance checks for weak invariants, unresolved assumptions, donation/inflation concern visibility, parsed Foundry evidence, and separated exports
 - Playwright E2E workflows on desktop and mobile Chrome for project intake, browser navigation, Foundry log upload, parsed ledger evidence, completed public demo, harness download, and audit packet download
@@ -39,17 +40,17 @@ Current automated checks cover:
 
 | Surface | Automated checks | Command |
 |---|---:|---|
-| Web component, API, export, and demo tests | 36 | `npm test` |
+| Web component, API, export, and demo tests | 37 | `npm test` |
 | Shared schema and link validation | 7 | `npm test` |
 | Solidity analyzer fixtures | 10 | `npm test` |
 | ERC4626 property-engine fixtures | 10 | `npm test` |
 | Foundry harness-generator fixtures | 4 | `npm test` |
-| Foundry verification-runner fixtures | 7 | `npm test` |
+| Foundry verification-runner fixtures | 9 | `npm test` |
 | Foundry result-parser fixtures | 8 | `npm test` |
 | Deterministic eval assertions | 8 | `npm test` and `npm run eval` |
 | Browser E2E checks | 12 | `npm run test:e2e` |
 
-`npm test` currently covers 90 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
+`npm test` currently covers 93 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
 
 ### Eval And Validation Metrics
 
@@ -76,5 +77,5 @@ Before claiming broader support, keep adding:
 - realistic Foundry logs from multiple Forge output variants
 - deeper generated harness fixtures for fees, strategies, donation/inflation behavior, and adversarial token semantics
 - richer ERC4626 fixture families for adversarial strategy behavior and multi-contract source relationships
-- browser E2E checks for future responsive and runner cancellation error states as the UI surface expands
+- browser E2E checks for future runner cancellation against a deliberately long-running local fixture
 - repeat manual QA of product wording and exported packet contents before each public release

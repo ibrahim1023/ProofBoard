@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
 import type { Workspace } from "@proofboard/shared-types";
-import { createFoundryRunPlan, runFoundryPlan } from "./index";
+import { createFoundryRunPlan, runFoundryPlan, streamFoundryPlan } from "./index";
 
 const workspace = {
   id: "workspace_runner",
@@ -140,5 +140,48 @@ describe("verification runner", () => {
       status: "errored",
       rawOutput: "Project path is required before running Foundry."
     });
+  });
+
+  it("streams stdout and stderr before completing", async () => {
+    const plan = createFoundryRunPlan(workspace, generateFoundryHarnessBundle(workspace), {
+      mode: "local",
+      projectPath: "/tmp/proofboard"
+    });
+    const events: string[] = [];
+    const execution = await streamFoundryPlan(
+      plan,
+      (event) => events.push(event.type === "output" ? `${event.stream}:${event.chunk}` : `complete:${event.execution.status}`),
+      undefined,
+      async (_file, _args, options) => {
+        options.onStdout("[PASS] invariant_one()\n");
+        options.onStderr("Warning: low call count\n");
+        return { exitCode: 0, cancelled: false };
+      }
+    );
+
+    expect(events).toEqual([
+      "stdout:[PASS] invariant_one()\n",
+      "stderr:Warning: low call count\n",
+      "complete:passed"
+    ]);
+    expect(execution.rawOutput).toContain("Warning: low call count");
+  });
+
+  it("reports cancelled streaming executions without treating them as failures", async () => {
+    const plan = createFoundryRunPlan(workspace, generateFoundryHarnessBundle(workspace), {
+      mode: "local",
+      projectPath: "/tmp/proofboard"
+    });
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      streamFoundryPlan(
+        plan,
+        () => undefined,
+        controller.signal,
+        async () => ({ exitCode: 130, cancelled: true })
+      )
+    ).resolves.toMatchObject({ status: "cancelled", exitCode: 130 });
   });
 });

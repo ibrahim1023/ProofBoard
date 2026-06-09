@@ -23,7 +23,7 @@ export interface FoundryRunPlan {
 
 export interface RunnerExecution {
   plan: FoundryRunPlan;
-  status: "passed" | "failed" | "errored";
+  status: "passed" | "failed" | "errored" | "cancelled";
   stdout: string;
   stderr: string;
   rawOutput: string;
@@ -32,6 +32,23 @@ export interface RunnerExecution {
 
 export interface CommandExecutor {
   (file: string, args: string[], options: { cwd: string }): Promise<{ stdout: string; stderr: string; exitCode: number }>;
+}
+
+export type RunnerStreamEvent =
+  | { type: "output"; stream: "stdout" | "stderr"; chunk: string }
+  | { type: "complete"; execution: RunnerExecution };
+
+export interface StreamingCommandExecutor {
+  (
+    file: string,
+    args: string[],
+    options: {
+      cwd: string;
+      signal?: AbortSignal;
+      onStdout: (chunk: string) => void;
+      onStderr: (chunk: string) => void;
+    }
+  ): Promise<{ exitCode: number; cancelled: boolean }>;
 }
 
 const defaultDockerImage = "ghcr.io/foundry-rs/foundry:stable";
@@ -118,6 +135,52 @@ export async function runFoundryPlan(plan: FoundryRunPlan, executor: CommandExec
   };
 }
 
+export async function streamFoundryPlan(
+  plan: FoundryRunPlan,
+  onEvent: (event: RunnerStreamEvent) => void,
+  signal?: AbortSignal,
+  executor: StreamingCommandExecutor = spawnExecutor
+): Promise<RunnerExecution> {
+  if (plan.cwd === "." || plan.cwd.trim().length === 0) {
+    const execution: RunnerExecution = {
+      plan,
+      status: "errored",
+      stdout: "",
+      stderr: "Project path is required before running Foundry.",
+      rawOutput: "Project path is required before running Foundry.",
+      exitCode: 1
+    };
+    onEvent({ type: "complete", execution });
+    return execution;
+  }
+
+  let stdout = "";
+  let stderr = "";
+  const result = await executor(plan.executable, plan.args, {
+    cwd: plan.cwd,
+    signal,
+    onStdout(chunk) {
+      stdout += chunk;
+      onEvent({ type: "output", stream: "stdout", chunk });
+    },
+    onStderr(chunk) {
+      stderr += chunk;
+      onEvent({ type: "output", stream: "stderr", chunk });
+    }
+  });
+  const rawOutput = [stdout, stderr].filter(Boolean).join("\n");
+  const execution: RunnerExecution = {
+    plan,
+    status: result.cancelled ? "cancelled" : result.exitCode === 0 ? "passed" : "failed",
+    stdout,
+    stderr,
+    rawOutput,
+    exitCode: result.exitCode
+  };
+  onEvent({ type: "complete", execution });
+  return execution;
+}
+
 function missingHarnessWarnings(harnessBundle: HarnessBundle) {
   const paths = new Set(harnessBundle.files.map((file) => file.path));
   const required = ["test/invariants/ProofboardVaultInvariant.t.sol", "test/invariants/handlers/VaultHandler.sol"];
@@ -132,6 +195,46 @@ function execFileExecutor(file: string, args: string[], options: { cwd: string }
       execFile(file, args, { cwd: options.cwd }, (error, stdout, stderr) => {
         const exitCode = typeof error === "object" && error && "code" in error && typeof error.code === "number" ? error.code : 0;
         resolve({ stdout, stderr, exitCode });
+      });
+    });
+  });
+}
+
+function spawnExecutor(
+  file: string,
+  args: string[],
+  options: {
+    cwd: string;
+    signal?: AbortSignal;
+    onStdout: (chunk: string) => void;
+    onStderr: (chunk: string) => void;
+  }
+) {
+  return new Promise<{ exitCode: number; cancelled: boolean }>((resolve) => {
+    void import("node:child_process").then(({ spawn }) => {
+      const child = spawn(file, args, { cwd: options.cwd, stdio: ["ignore", "pipe", "pipe"] });
+      let cancelled = options.signal?.aborted ?? false;
+      const abort = () => {
+        cancelled = true;
+        child.kill("SIGTERM");
+      };
+
+      if (cancelled) {
+        child.kill("SIGTERM");
+      } else {
+        options.signal?.addEventListener("abort", abort, { once: true });
+      }
+
+      child.stdout.on("data", (chunk: Buffer) => options.onStdout(chunk.toString()));
+      child.stderr.on("data", (chunk: Buffer) => options.onStderr(chunk.toString()));
+      child.on("error", (error) => {
+        options.onStderr(error.message);
+        options.signal?.removeEventListener("abort", abort);
+        resolve({ exitCode: 1, cancelled });
+      });
+      child.on("close", (code) => {
+        options.signal?.removeEventListener("abort", abort);
+        resolve({ exitCode: code ?? (cancelled ? 130 : 1), cancelled });
       });
     });
   });

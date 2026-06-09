@@ -28,7 +28,7 @@ In scope:
 - Assumption Debt Board with status, severity, linked functions, linked properties, owner, rationale, revisit date, mitigation, accepted-risk justification, accepted-risk visibility, and out-of-scope visibility.
 - Verification Ledger that separates claim status, property status, verification level, evidence, assumptions, risk, next action, and verification-readiness signals.
 - Foundry invariant harness generator with invariant test, handler, actor model, standard token mock, fee-on-transfer token mock, rebasing token mock, setup instructions, suggested `forge test` command, code viewer, and downloadable bundle.
-- Local and Docker Foundry runner planning plus a local server bridge that executes structured runner requests and captures raw output for review.
+- Local and Docker Foundry runner planning plus a local server bridge that streams structured runner output, supports cancellation, and preserves partial output for review.
 - Foundry results parsing from pasted or uploaded raw output, including invariant pass/fail status, counterexample or sequence text, weak handler signals, vacuity metrics, and evidence updates in the ledger.
 - Harness quality and vacuity review for generated handlers, adversarial mocks, missing core-flow exercise, low call counts, unreached handlers, missing actor evidence, and passing invariants that do not visibly touch critical flows.
 - Audit packet exports for the assurance report, executive summary, approved protocol intent, unresolved assumption table, verification evidence appendix, failed/fuzzy evidence details, suggested auditor questions, ledger JSON, verification readiness, harness quality, vacuity report, assumption debt, protocol map, approved properties, Foundry scaffold bundle, and audit prep focus.
@@ -90,7 +90,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 90 passing | `npm test` |
+| Unit and eval assertions | 93 passing | `npm test` |
 | Browser E2E checks | 12 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
@@ -135,7 +135,7 @@ Generated harnesses are traceable to selected ProofBoard property ids. They are 
 
 ### Results And Audit Exports
 
-`packages/verification-runner` plans local or Docker Foundry commands for generated harnesses and can execute them from Node-based workflows. The web Results board exposes the command plan, calls a local `run-foundry` server route with structured runner fields, captures stdout/stderr into the raw output field, and keeps parsing as a separate evidence step. `packages/result-parser` preserves raw Foundry output and extracts invariant pass/fail lines, failing test names, counterexample or sequence text, and weak handler warnings. The web app adds verification-readiness, harness-quality, and invariant-vacuity reports so passing output stays separate from evidence strength. Parsed evidence is attached to linked properties, and the Export board produces a separated audit packet for executive review, approved intent, unresolved assumptions, property evidence, failed or fuzzy evidence, auditor questions, protocol map data, readiness, harness quality, vacuity review, and suggested audit focus.
+`packages/verification-runner` plans local or Docker Foundry commands for generated harnesses and can execute them from Node-based workflows. The web Results board exposes the command plan, calls a local `run-foundry` server route with structured runner fields, streams stdout/stderr into the raw output field, supports cancelling long-running jobs, and preserves partial output without treating it as completed evidence. Parsing remains a separate evidence step. `packages/result-parser` preserves raw Foundry output and extracts invariant pass/fail lines, failing test names, counterexample or sequence text, and weak handler warnings. The web app adds verification-readiness, harness-quality, and invariant-vacuity reports so passing output stays separate from evidence strength. Parsed evidence is attached to linked properties, and the Export board produces a separated audit packet for executive review, approved intent, unresolved assumptions, property evidence, failed or fuzzy evidence, auditor questions, protocol map data, readiness, harness quality, vacuity review, and suggested audit focus.
 
 ### Evaluations And Demo
 

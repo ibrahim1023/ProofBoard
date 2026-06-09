@@ -256,17 +256,27 @@ Sequence:
   });
 
   it("captures runner output before parsing it into evidence", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ok: true,
-        execution: {
-          status: "passed",
-          rawOutput: "[PASS] invariant_redeemableAssets() (runs: 256)",
-          exitCode: 0
-        }
-      })
-    } as Response);
+    const encoder = new TextEncoder();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode(
+                `${JSON.stringify({ type: "output", stream: "stdout", chunk: "[PASS] invariant_redeemableAssets() (runs: 256)" })}\n`
+              )
+            );
+            controller.enqueue(
+              encoder.encode(
+                `${JSON.stringify({ type: "complete", execution: { status: "passed", exitCode: 0 } })}\n`
+              )
+            );
+            controller.close();
+          }
+        }),
+        { status: 200 }
+      )
+    );
     render(<Home />);
 
     fireEvent.click(screen.getByRole("button", { name: "Results" }));
@@ -299,6 +309,37 @@ Counterexample: paused vault accepted a deposit
 Sequence: handler.deposit(1 ether, alice)
 Warning: unreached handler selector handler.mint(uint256,address)`
     );
+  });
+
+  it("cancels a streaming runner while preserving partial output", async () => {
+    const encoder = new TextEncoder();
+    vi.spyOn(globalThis, "fetch").mockImplementation((_input, init) =>
+      Promise.resolve(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(
+                encoder.encode(`${JSON.stringify({ type: "output", stream: "stdout", chunk: "[PASS] partial invariant\n" })}\n`)
+              );
+              init?.signal?.addEventListener(
+                "abort",
+                () => controller.error(new DOMException("The operation was aborted.", "AbortError")),
+                { once: true }
+              );
+            }
+          }),
+          { status: 200 }
+        )
+      )
+    );
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Results" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run planned command" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel run" }));
+
+    expect(await screen.findByText("Runner cancellation requested. Partial output remains available for review.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Raw Foundry output")).toHaveValue("[PASS] partial invariant\n");
   });
 
   it("renders downloadable audit packet artifacts", () => {
