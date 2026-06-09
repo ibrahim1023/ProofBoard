@@ -90,12 +90,12 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 94 passing | `npm test` |
+| Unit and eval assertions | 95 passing | `npm test` |
 | Browser E2E checks | 12 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
 | Repo validation gates | 4 / 4 passing | lint, typecheck, test, production build |
-| Foundry generated-harness checks | 3 passing modes | scaffold compile smoke, action-driven target-vault execution, and adversarial token semantics when local `forge` is available |
+| Foundry generated-harness checks | 4 passing modes | scaffold compilation, action-driven target-vault execution, adversarial token semantics, and strategy/inflation sensitivity when local `forge` is available |
 
 The eval score is a deterministic fixture score for the current release-blocker suite. ProofBoard does not yet report a model-backed LLM accuracy benchmark over real protocol corpora.
 
@@ -204,7 +204,7 @@ Run the strict model-backed Ollama evaluation:
 npm run eval:ollama
 ```
 
-Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. Current coverage includes desktop and mobile Playwright workflows, generated Foundry scaffold compilation, action-driven target-vault execution with protocol-specific accounting assertions, and executable fee-on-transfer and rebasing fixtures when `forge` is available locally.
+Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. Current coverage includes desktop and mobile Playwright workflows, generated Foundry scaffold compilation, action-driven target-vault execution with protocol-specific accounting assertions, executable fee-on-transfer and rebasing fixtures, and strategy gain/loss plus donation-inflation sensitivity when `forge` is available locally.
 
 ## Evidence Boundaries
 

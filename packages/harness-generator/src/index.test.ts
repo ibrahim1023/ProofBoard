@@ -177,6 +177,31 @@ describe("generateFoundryHarnessBundle", () => {
       rmSync(root, { force: true, recursive: true });
     }
   });
+
+  it.runIf(forgeAvailable())("exercises strategy accounting and donation-driven inflation sensitivity", () => {
+    const root = mkdtempSync(join(tmpdir(), "proofboard-strategy-inflation-"));
+
+    try {
+      writeFoundryFixture(root);
+
+      generateFoundryHarnessBundle(workspace)
+        .files.filter((file) => file.path.endsWith("/MockERC20.sol"))
+        .forEach((file) => write(root, file.path, file.content));
+      write(root, "test/StrategyAndInflationFixture.t.sol", strategyAndInflationFixture());
+
+      const output = execFileSync("forge", ["test", "--offline", "--match-contract", "StrategyAndInflationFixture"], {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+
+      expect(output).toContain("testStrategyGainAndLossChangeManagedAssets");
+      expect(output).toContain("testDonationCanRoundVictimDepositToZeroShares");
+      expect(output).toContain("Suite result: ok");
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
 });
 
 function forgeAvailable() {
@@ -365,6 +390,99 @@ contract AdversarialTokenFixture {
         require(vault.totalSupply() == 100 ether, "SUPPLY");
         require(vault.totalAssets() == 99 ether, "RECEIVED_ASSETS");
         require(vault.totalAssets() < vault.totalSupply(), "ACCOUNTING_MISMATCH");
+    }
+}
+`;
+}
+
+function strategyAndInflationFixture() {
+  return `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {MockERC20} from "./invariants/mocks/MockERC20.sol";
+
+contract StrategyFixture {
+    MockERC20 public immutable asset;
+
+    constructor(MockERC20 asset_) {
+        asset = asset_;
+    }
+
+    function totalAssets() external view returns (uint256) {
+        return asset.balanceOf(address(this));
+    }
+
+    function realizeLoss(uint256 assets) external {
+        require(asset.transfer(address(0xDEAD), assets), "LOSS_TRANSFER");
+    }
+}
+
+contract StrategyAwareVault {
+    MockERC20 public immutable asset;
+    StrategyFixture public immutable strategy;
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+
+    constructor(MockERC20 asset_) {
+        asset = asset_;
+        strategy = new StrategyFixture(asset_);
+    }
+
+    function totalAssets() public view returns (uint256) {
+        return asset.balanceOf(address(this)) + strategy.totalAssets();
+    }
+
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
+        uint256 managedAssets = totalAssets();
+        shares = totalSupply == 0 ? assets : (assets * totalSupply) / managedAssets;
+        require(asset.transferFrom(msg.sender, address(this), assets), "TRANSFER_FROM");
+        balanceOf[receiver] += shares;
+        totalSupply += shares;
+    }
+
+    function donate(uint256 assets) external {
+        require(asset.transferFrom(msg.sender, address(this), assets), "DONATION_TRANSFER");
+    }
+
+    function deployToStrategy(uint256 assets) external {
+        require(asset.transfer(address(strategy), assets), "STRATEGY_TRANSFER");
+    }
+}
+
+contract StrategyAndInflationFixture {
+    function testStrategyGainAndLossChangeManagedAssets() external {
+        MockERC20 token = new MockERC20("Asset", "AST", 18);
+        StrategyAwareVault vault = new StrategyAwareVault(token);
+
+        token.mint(address(this), 100 ether);
+        require(token.approve(address(vault), 100 ether), "APPROVE");
+        require(vault.deposit(100 ether, address(this)) == 100 ether, "INITIAL_SHARES");
+
+        vault.deployToStrategy(60 ether);
+        require(vault.totalAssets() == 100 ether, "DEPLOYMENT_ACCOUNTING");
+
+        token.mint(address(vault.strategy()), 20 ether);
+        require(vault.totalAssets() == 120 ether, "STRATEGY_GAIN");
+
+        vault.strategy().realizeLoss(30 ether);
+        require(vault.totalAssets() == 90 ether, "STRATEGY_LOSS");
+    }
+
+    function testDonationCanRoundVictimDepositToZeroShares() external {
+        MockERC20 token = new MockERC20("Asset", "AST", 18);
+        StrategyAwareVault vault = new StrategyAwareVault(token);
+        address attacker = address(0xA11CE);
+        address victim = address(0xB0B);
+
+        token.mint(address(this), 201);
+        require(token.approve(address(vault), 201), "APPROVE");
+        require(vault.deposit(1, attacker) == 1, "ATTACKER_SHARES");
+        vault.donate(100);
+
+        uint256 victimShares = vault.deposit(100, victim);
+        require(victimShares == 0, "ZERO_SHARE_ROUNDING");
+        require(vault.totalAssets() == 201, "DONATED_ASSETS");
+        require(vault.totalSupply() == 1, "DILUTED_SUPPLY");
     }
 }
 `;
