@@ -1,5 +1,8 @@
 # ProofBoard
 
+> Read the technical write-up:  
+> **[AI Should Not Audit Smart Contracts. It Should Help Build Evidence.](https://medium.com/@ibrahim.a.motiwala/ai-should-not-audit-smart-contracts-it-should-help-build-evidence-7f095b691f05)**
+
 ProofBoard is a web-based protocol assurance workspace for smart contract teams. It turns protocol intent into reviewed claims, candidate invariants, Foundry harness scaffolds, verification evidence, and visible assumption debt.
 
 ProofBoard aligns with Vitalik Buterin's [formal verification](https://vitalik.eth.limo/general/2026/05/18/fv.html) direction: AI should help defenders specify, verify, and protect high-value secure cores, rather than merely generate more code or longer bug lists.
