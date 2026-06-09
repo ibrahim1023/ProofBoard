@@ -14,5 +14,6 @@ Expected outputs:
 - standard mock ERC20 tokens
 - adversarial token mocks
 - Solidity SMTChecker standard JSON input
+- Scribble annotation review worksheet
 - setup instructions
 - suggested `forge test` commands

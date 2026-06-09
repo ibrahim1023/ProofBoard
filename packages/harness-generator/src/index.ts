@@ -25,6 +25,7 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
       `Update the import in test/invariants/ProofboardVaultInvariant.t.sol if ${sourcePath} is not the vault source path.`,
       "Wire the vault constructor and asset deployment in setUp before treating any result as evidence.",
       "Review verification/smtchecker.json before running solc --standard-json; compiler warnings and unproved targets are evidence, not proofs.",
+      "Complete the boolean expressions in verification/scribble/ANNOTATIONS.md and review the instrumented Solidity before running Scribble.",
       "Run the suggested forge test command locally and paste the raw output into ProofBoard Results."
     ],
     files: [
@@ -67,6 +68,11 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
         path: "verification/smtchecker.json",
         propertyIds,
         content: smtCheckerInput(sourcePath)
+      },
+      {
+        path: "verification/scribble/ANNOTATIONS.md",
+        propertyIds,
+        content: scribbleAnnotations(contractName, sourcePath, properties)
       }
     ]
   };
@@ -351,6 +357,50 @@ function smtCheckerInput(sourcePath: string) {
     null,
     2
   )}\n`;
+}
+
+function scribbleAnnotations(contractName: string, sourcePath: string, properties: Property[]) {
+  const templates = properties.map(
+    (property) => `### ${property.id}
+
+Intent: ${singleLine(property.text)}
+
+Risk: ${property.risk}
+
+\`\`\`solidity
+/// #invariant {:msg "ProofBoard ${escapeScribbleMessage(property.id)}"} <BOOLEAN_EXPRESSION>;
+\`\`\`
+`
+  );
+
+  return `# ProofBoard Scribble Annotation Worksheet
+
+Target contract: \`${contractName}\`
+
+Target source: \`${sourcePath}\`
+
+This file is a review scaffold, not an instrumented contract and not verification evidence. ProofBoard does not translate natural-language intent into executable Solidity expressions automatically because a guessed or \`true\` expression would create misleading, potentially vacuous checks.
+
+For each approved property:
+
+1. Replace \`<BOOLEAN_EXPRESSION>\` with a contract-specific Solidity expression.
+2. Place the completed annotation immediately before the relevant contract or function in \`${sourcePath}\`.
+3. Review assumptions, quantification, old-state references, and arithmetic behavior.
+4. Instrument the reviewed source with Scribble and run the resulting tests.
+5. Preserve raw instrumentation and test output before recording evidence in ProofBoard.
+
+## Property Templates
+
+${templates.join("\n") || "No properties were selected. Add human-approved properties before creating annotations.\n"}
+`;
+}
+
+function singleLine(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function escapeScribbleMessage(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function invariantName(property: Property) {

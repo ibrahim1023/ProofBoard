@@ -69,7 +69,8 @@ describe("generateFoundryHarnessBundle", () => {
       "test/invariants/mocks/FeeOnTransferToken.sol",
       "test/invariants/mocks/RebasingToken.sol",
       "test/invariants/README.md",
-      "verification/smtchecker.json"
+      "verification/smtchecker.json",
+      "verification/scribble/ANNOTATIONS.md"
     ]);
   });
 
@@ -95,6 +96,18 @@ describe("generateFoundryHarnessBundle", () => {
       showUnproved: true
     });
     expect(input.settings.modelChecker.targets).toContain("assert");
+  });
+
+  it("generates reviewed Scribble annotation templates without executable placeholders", () => {
+    const bundle = generateFoundryHarnessBundle(workspace);
+    const generated = bundle.files.find((file) => file.path === "verification/scribble/ANNOTATIONS.md");
+
+    expect(generated?.propertyIds).toEqual(["property_share_accounting"]);
+    expect(generated?.content).toContain("Target contract: `TestVault`");
+    expect(generated?.content).toContain("Target source: `src/TestVault.sol`");
+    expect(generated?.content).toContain('/// #invariant {:msg "ProofBoard property_share_accounting"} <BOOLEAN_EXPRESSION>;');
+    expect(generated?.content).toContain("not verification evidence");
+    expect(generated?.content).not.toContain('"} true;');
   });
 
   it.runIf(forgeAvailable())("compiles generated scaffold contracts in a Foundry fixture", () => {
