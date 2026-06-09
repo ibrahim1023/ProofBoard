@@ -44,13 +44,13 @@ Current automated checks cover:
 | Shared schema and link validation | 7 | `npm test` |
 | Solidity analyzer fixtures | 10 | `npm test` |
 | ERC4626 property-engine fixtures | 10 | `npm test` |
-| Foundry harness-generator fixtures | 4 | `npm test` |
+| Foundry harness-generator fixtures | 5 | `npm test` |
 | Foundry verification-runner fixtures | 9 | `npm test` |
 | Foundry result-parser fixtures | 8 | `npm test` |
 | Deterministic eval assertions | 8 | `npm test` and `npm run eval` |
 | Browser E2E checks | 12 | `npm run test:e2e` |
 
-`npm test` currently covers 93 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
+`npm test` currently covers 94 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
 
 ### Eval And Validation Metrics
 
@@ -75,7 +75,7 @@ Latest local run on June 9, 2026 used `llama3.1:8b` with prompt `ollama-claims-v
 Before claiming broader support, keep adding:
 
 - realistic Foundry logs from multiple Forge output variants
-- deeper generated harness fixtures for fees, strategies, donation/inflation behavior, and adversarial token semantics
+- deeper generated harness fixtures for strategies and donation/inflation behavior beyond the current fee-on-transfer and rebasing semantics
 - richer ERC4626 fixture families for adversarial strategy behavior and multi-contract source relationships
 - browser E2E checks for future runner cancellation against a deliberately long-running local fixture
 - repeat manual QA of product wording and exported packet contents before each public release

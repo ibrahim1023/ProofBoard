@@ -151,6 +151,32 @@ describe("generateFoundryHarnessBundle", () => {
       rmSync(root, { force: true, recursive: true });
     }
   });
+
+  it.runIf(forgeAvailable())("exercises generated fee-on-transfer and rebasing token semantics", () => {
+    const root = mkdtempSync(join(tmpdir(), "proofboard-adversarial-tokens-"));
+
+    try {
+      writeFoundryFixture(root);
+
+      generateFoundryHarnessBundle(workspace)
+        .files.filter((file) => file.path.includes("/mocks/"))
+        .forEach((file) => write(root, file.path, file.content));
+      write(root, "test/AdversarialTokenFixture.t.sol", adversarialTokenFixture());
+
+      const output = execFileSync("forge", ["test", "--offline", "--match-contract", "AdversarialTokenFixture"], {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+
+      expect(output).toContain("testFeeOnTransferAccruesConfiguredFee");
+      expect(output).toContain("testNaiveVaultAccountingExposesTransferFee");
+      expect(output).toContain("testRebaseChangesBalanceAndSupply");
+      expect(output).toContain("Suite result: ok");
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
 });
 
 function forgeAvailable() {
@@ -267,4 +293,79 @@ function wireFixtureVault(path: string, content: string) {
   }
 
   return content;
+}
+
+function adversarialTokenFixture() {
+  return `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {FeeOnTransferToken} from "./invariants/mocks/FeeOnTransferToken.sol";
+import {RebasingToken} from "./invariants/mocks/RebasingToken.sol";
+
+contract NaiveFeeVault {
+    FeeOnTransferToken public immutable asset;
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+
+    constructor(FeeOnTransferToken asset_) {
+        asset = asset_;
+    }
+
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
+        require(asset.transferFrom(msg.sender, address(this), assets), "TRANSFER_FROM");
+        shares = assets;
+        balanceOf[receiver] += shares;
+        totalSupply += shares;
+    }
+
+    function totalAssets() external view returns (uint256) {
+        return asset.balanceOf(address(this));
+    }
+}
+
+contract AdversarialTokenFixture {
+    function testFeeOnTransferAccruesConfiguredFee() external {
+        FeeOnTransferToken token = new FeeOnTransferToken();
+        address receiver = address(0xBEEF);
+
+        token.mint(address(this), 200 ether);
+        require(token.transfer(receiver, 100 ether), "TRANSFER");
+        require(token.balanceOf(receiver) == 99 ether, "DEFAULT_NET");
+        require(token.balanceOf(address(0xFEE)) == 1 ether, "DEFAULT_FEE");
+
+        token.setFeeBps(250);
+        require(token.transfer(receiver, 100 ether), "TRANSFER_CONFIGURED");
+        require(token.balanceOf(receiver) == 196.5 ether, "CONFIGURED_NET");
+        require(token.balanceOf(address(0xFEE)) == 3.5 ether, "CONFIGURED_FEE");
+    }
+
+    function testRebaseChangesBalanceAndSupply() external {
+        RebasingToken token = new RebasingToken();
+        address holder = address(0xCAFE);
+
+        token.mint(holder, 100 ether);
+        token.positiveRebase(holder, 20 ether);
+        require(token.balanceOf(holder) == 120 ether, "POSITIVE_BALANCE");
+        require(token.totalSupply() == 120 ether, "POSITIVE_SUPPLY");
+
+        token.negativeRebase(holder, 30 ether);
+        require(token.balanceOf(holder) == 90 ether, "NEGATIVE_BALANCE");
+        require(token.totalSupply() == 90 ether, "NEGATIVE_SUPPLY");
+    }
+
+    function testNaiveVaultAccountingExposesTransferFee() external {
+        FeeOnTransferToken token = new FeeOnTransferToken();
+        NaiveFeeVault vault = new NaiveFeeVault(token);
+
+        token.mint(address(this), 100 ether);
+        require(token.approve(address(vault), 100 ether), "APPROVE");
+        uint256 shares = vault.deposit(100 ether, address(this));
+
+        require(shares == 100 ether, "SHARES");
+        require(vault.totalSupply() == 100 ether, "SUPPLY");
+        require(vault.totalAssets() == 99 ether, "RECEIVED_ASSETS");
+        require(vault.totalAssets() < vault.totalSupply(), "ACCOUNTING_MISMATCH");
+    }
+}
+`;
 }
