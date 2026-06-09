@@ -21,7 +21,8 @@
     "test": "npm --workspaces --if-present run test",
     "test:ollama": "OLLAMA_SMOKE=1 npm --workspace @proofboard/web run test -- app/api/generate-claims/ollama.smoke.test.ts",
     "test:e2e": "npm --workspace @proofboard/web run test:e2e",
-    "eval": "npm --workspace @proofboard/evals run eval"
+    "eval": "npm --workspace @proofboard/evals run eval",
+    "eval:ollama": "npm --workspace @proofboard/evals run eval:ollama"
   },
   "engines": {
     "node": ">=22"

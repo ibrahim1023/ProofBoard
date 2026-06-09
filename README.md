@@ -90,7 +90,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 89 passing | `npm test` |
+| Unit and eval assertions | 90 passing | `npm test` |
 | Browser E2E checks | 12 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
@@ -196,6 +196,12 @@ Run the opt-in local Ollama smoke test:
 
 ```bash
 npm run test:ollama
+```
+
+Run the strict model-backed Ollama evaluation:
+
+```bash
+npm run eval:ollama
 ```
 
 Testing strategy and remaining high-value gates are tracked in `docs/testing.md`. Current coverage includes desktop and mobile Playwright workflows, generated Foundry scaffold compilation, and action-driven target-vault execution with protocol-specific accounting assertions when `forge` is available locally.

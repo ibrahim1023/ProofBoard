@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "eval": "vitest run",
+    "eval:ollama": "OLLAMA_EVAL=1 vitest run src/model-evaluator.test.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

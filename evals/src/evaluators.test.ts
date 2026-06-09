@@ -22,6 +22,8 @@ import {
   vaultSource,
   weakInvariantCases
 } from "./datasets";
+import { ollamaClaimEvalCases } from "./model-datasets";
+import { evaluateOllamaCase, summarizeOllamaEval } from "./model-evaluator";
 
 const protocolMap = analyzeSoliditySource(vaultSource);
 const suggestedClaims = suggestClaimsFromProtocolMap(protocolMap);
@@ -83,5 +85,63 @@ describe("release-blocker ProofBoard evals", () => {
       expect.arrayContaining(["proofboard-report.md", "proofboard-ledger.json", "assumption-debt.md", "audit-prep.md"])
     );
     expect(packet.suggestedAuditFocus.length).toBeGreaterThan(0);
+  });
+
+  it("scores model-backed claim reports deterministically", () => {
+    const proposed = ollamaClaimEvalCases[0];
+    const refusal = ollamaClaimEvalCases[2];
+    const results = [
+      evaluateOllamaCase(proposed, {
+        status: 200,
+        latencyMs: 100,
+        body: {
+          ok: true,
+          payload: {
+            status: "proposed",
+            claims: [
+              {
+                id: "claim_eval_deposit",
+                title: "Deposits mint proportional shares",
+                text: "Deposits should mint shares according to the previewed accounting result before assets move.",
+                source: ["AccountingVault deposit"],
+                confidence: 0.8,
+                relatedContracts: ["AccountingVault"],
+                relatedFunctions: ["deposit"],
+                severity: "high",
+                status: "AI-inferred"
+              },
+              {
+                id: "claim_eval_withdraw",
+                title: "Withdrawals burn owned shares",
+                text: "Withdraw flows should burn shares according to previewWithdraw and the requested asset amount.",
+                source: ["AccountingVault withdraw"],
+                confidence: 0.8,
+                relatedContracts: ["AccountingVault"],
+                relatedFunctions: ["withdraw"],
+                severity: "high",
+                status: "AI-inferred"
+              }
+            ]
+          }
+        }
+      }),
+      evaluateOllamaCase(refusal, {
+        status: 200,
+        latencyMs: 50,
+        body: {
+          ok: true,
+          payload: { status: "insufficient_evidence", reason: "No protocol source is available." }
+        }
+      })
+    ];
+
+    expect(summarizeOllamaEval(results)).toMatchObject({
+      schemaValidity: 1,
+      refusalAccuracy: 1,
+      sourceGrounding: 1,
+      usefulness: 1,
+      conceptCoverage: 1,
+      passed: true
+    });
   });
 });

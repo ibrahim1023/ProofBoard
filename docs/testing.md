@@ -10,6 +10,7 @@ From the repository root:
 npm test
 npm run test:e2e
 npm run test:ollama
+npm run eval:ollama
 npm run eval
 npm run lint
 npm run typecheck
@@ -22,6 +23,7 @@ Current automated checks cover:
 - Solidity analyzer extraction, inheritance arguments, naming variants, immutable state, unusual token calls, and explicit unsupported-syntax warnings
 - property templates, skeptic checks, assumption linking, structured LLM claim refusal gates, and mocked Ollama adapter responses
 - opt-in live Ollama proposal/refusal smoke coverage, gated by `OLLAMA_SMOKE=1` and local model availability
+- strict model-backed Ollama evaluation for schema validity, source grounding, refusal accuracy, usefulness, concept coverage, latency, and token usage
 - Foundry harness artifact paths, traceability, and a generated scaffold compile smoke when `forge` is available
 - wired generated-harness execution against a local target-vault Foundry fixture, including deposit, withdraw, donation, and accounting assertions, when `forge` is available
 - Foundry output pass/fail, counterexample, parser-error, weak-handler, and unlinked-invariant handling
@@ -44,10 +46,10 @@ Current automated checks cover:
 | Foundry harness-generator fixtures | 4 | `npm test` |
 | Foundry verification-runner fixtures | 7 | `npm test` |
 | Foundry result-parser fixtures | 8 | `npm test` |
-| Deterministic eval assertions | 7 | `npm test` and `npm run eval` |
+| Deterministic eval assertions | 8 | `npm test` and `npm run eval` |
 | Browser E2E checks | 12 | `npm run test:e2e` |
 
-`npm test` currently covers 89 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
+`npm test` currently covers 90 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
 
 ### Eval And Validation Metrics
 
@@ -62,6 +64,8 @@ Current automated checks cover:
 ### Opt-In Ollama Smoke
 
 `npm run test:ollama` probes `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`) for `OLLAMA_MODEL` (default `qwen2.5-coder:7b`). If available, it checks a source-backed proposal and an unsupported-input refusal. The run reports model, prompt version, dataset version, date, latency, and Ollama token metrics. It is not part of deterministic release gates and is not a quality benchmark.
+
+`npm run eval:ollama` is the stricter model-backed suite. Unlike the smoke command, it fails when Ollama or the selected model is unavailable. It evaluates two source-backed ERC4626 cases and one refusal case, requires 100% schema validity and refusal accuracy, at least 75% source grounding and usefulness, and at least 50% expected-concept coverage. Runtime varies by local hardware and is reported rather than used as a release threshold.
 
 ## Remaining High-Value Gates
 

@@ -22,6 +22,7 @@ Initial eval targets:
 - assumption generation
 - Foundry output parsing
 - audit packet completeness
+- local-model schema validity, source grounding, refusal behavior, usefulness, and runtime metrics
 
 Run the MVP eval suite from the repository root:
 
@@ -31,6 +32,14 @@ npm run eval
 
 `src/datasets.ts` marks release-blocker cases explicitly. The deterministic evaluator suite covers template claim extraction, unsupported structured LLM claim rejection, ERC4626 property coverage, weak invariant checks, assumption generation, Foundry output fixtures under `fixtures/foundry/`, audit packet completeness, and demo workspace schema validity.
 
+The optional model-backed suite is separate from release blockers:
+
+```bash
+npm run eval:ollama
+```
+
+It requires a running Ollama service. `OLLAMA_MODEL` selects an installed model; otherwise the evaluator prefers common Qwen, Llama, or DeepSeek coding/instruct models and falls back to the first installed model. The versioned dataset covers vault accounting claims, pause/admin claims, and unsupported-evidence refusal. Reports are written to `evals/results/latest-ollama-eval.json` and include model, prompt version, dataset version, run date, case scores, latency, and token metrics.
+
 ## Current Scorecard
 
 | Signal | Current score | Source |
@@ -38,7 +47,7 @@ npm run eval
 | Release-blocker dataset cases | 8 | `src/datasets.ts` |
 | Release-blocker dataset cases passing | 8 / 8 | `npm run eval` |
 | Deterministic fixture accuracy | 100% | Passed release-blocker cases divided by defined release-blocker cases |
-| Evaluator assertions | 7 | `src/evaluators.test.ts` |
+| Evaluator assertions | 8 | `src/evaluators.test.ts` |
 
 ### Release-Blocker Case Mix
 
@@ -51,4 +60,4 @@ npm run eval
 | Assumption generation | 1 |
 | Foundry parser fixtures | 2 |
 
-The score is a deterministic regression metric for the current fixtures. It is not a model benchmark, vulnerability-detection recall score, or protocol-safety claim. The audit packet and demo schema guard also run in the evaluator suite as assertions outside the counted release-blocker dataset cases.
+The score is a deterministic regression metric for the current fixtures. It is not a model benchmark, vulnerability-detection recall score, or protocol-safety claim. The audit packet, demo schema guard, and model-report scoring logic also run in the evaluator suite as assertions outside the counted release-blocker dataset cases. Live Ollama scores are reported separately and never replace deterministic release gates.
