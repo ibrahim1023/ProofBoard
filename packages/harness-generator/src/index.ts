@@ -24,6 +24,7 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
       "Copy the generated files into the target repository root while preserving the test/invariants paths.",
       `Update the import in test/invariants/ProofboardVaultInvariant.t.sol if ${sourcePath} is not the vault source path.`,
       "Wire the vault constructor and asset deployment in setUp before treating any result as evidence.",
+      "Review verification/smtchecker.json before running solc --standard-json; compiler warnings and unproved targets are evidence, not proofs.",
       "Run the suggested forge test command locally and paste the raw output into ProofBoard Results."
     ],
     files: [
@@ -61,6 +62,11 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
         path: "test/invariants/README.md",
         propertyIds,
         content: harnessReadme(workspace, properties)
+      },
+      {
+        path: "verification/smtchecker.json",
+        propertyIds,
+        content: smtCheckerInput(sourcePath)
       }
     ]
   };
@@ -316,6 +322,35 @@ ${lines.join("\n") || "- No properties selected."}
 forge test --match-contract ProofboardVaultInvariant
 \`\`\`
 `;
+}
+
+function smtCheckerInput(sourcePath: string) {
+  return `${JSON.stringify(
+    {
+      language: "Solidity",
+      sources: {
+        [sourcePath]: {
+          urls: [sourcePath]
+        }
+      },
+      settings: {
+        modelChecker: {
+          engine: "chc",
+          invariants: ["contract", "reentrancy"],
+          showUnproved: true,
+          targets: ["assert", "balance", "divByZero", "overflow", "underflow"]
+        },
+        outputSelection: {
+          "*": {
+            "*": ["abi"],
+            "": ["ast"]
+          }
+        }
+      }
+    },
+    null,
+    2
+  )}\n`;
 }
 
 function invariantName(property: Property) {

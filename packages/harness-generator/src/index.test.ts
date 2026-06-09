@@ -68,7 +68,8 @@ describe("generateFoundryHarnessBundle", () => {
       "test/invariants/mocks/MockERC20.sol",
       "test/invariants/mocks/FeeOnTransferToken.sol",
       "test/invariants/mocks/RebasingToken.sol",
-      "test/invariants/README.md"
+      "test/invariants/README.md",
+      "verification/smtchecker.json"
     ]);
   });
 
@@ -79,6 +80,21 @@ describe("generateFoundryHarnessBundle", () => {
     expect(invariant?.propertyIds).toContain("property_share_accounting");
     expect(invariant?.content).toContain("ProofBoard property: property_share_accounting");
     expect(invariant?.content).toContain("not proof of safety");
+  });
+
+  it("generates a Solidity SMTChecker standard JSON input for the target source", () => {
+    const bundle = generateFoundryHarnessBundle(workspace);
+    const generated = bundle.files.find((file) => file.path === "verification/smtchecker.json");
+    const input = JSON.parse(generated?.content ?? "{}");
+
+    expect(generated?.propertyIds).toEqual(["property_share_accounting"]);
+    expect(input.sources["src/TestVault.sol"].urls).toEqual(["src/TestVault.sol"]);
+    expect(input.settings.modelChecker).toMatchObject({
+      engine: "chc",
+      invariants: ["contract", "reentrancy"],
+      showUnproved: true
+    });
+    expect(input.settings.modelChecker.targets).toContain("assert");
   });
 
   it.runIf(forgeAvailable())("compiles generated scaffold contracts in a Foundry fixture", () => {

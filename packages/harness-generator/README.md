@@ -13,5 +13,6 @@ Expected outputs:
 - actor models
 - standard mock ERC20 tokens
 - adversarial token mocks
+- Solidity SMTChecker standard JSON input
 - setup instructions
 - suggested `forge test` commands

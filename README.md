@@ -129,9 +129,10 @@ test/invariants/mocks/MockERC20.sol
 test/invariants/mocks/FeeOnTransferToken.sol
 test/invariants/mocks/RebasingToken.sol
 test/invariants/README.md
+verification/smtchecker.json
 ```
 
-Generated harnesses are traceable to selected ProofBoard property ids. They are scaffold code, not proof of safety; teams must wire constructors, handlers, actor roles, and protocol-specific assertions before treating Foundry output as verification evidence. The web app also reports harness quality across expected vault flows, adversarial-token coverage, donation sensitivity, pause behavior, and privileged actions.
+Generated harnesses are traceable to selected ProofBoard property ids. They are scaffold code, not proof of safety; teams must wire constructors, handlers, actor roles, and protocol-specific assertions before treating Foundry output as verification evidence. The bundle also includes a Solidity SMTChecker standard JSON input configured to report unproved targets. The web app reports harness quality across expected vault flows, adversarial-token coverage, donation sensitivity, pause behavior, and privileged actions.
 
 ### Results And Audit Exports
 
