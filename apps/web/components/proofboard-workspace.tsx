@@ -902,7 +902,7 @@ export function ProofboardWorkspace() {
               ) : (
                 workspace.claims.map((claim) => {
                   const claimReviews = reviewRecordsFor(workspace, "claim", claim.id);
-                  const approvalCount = approvedReviewers(workspace, claim.id).size;
+                  const approvalCount = approvalCountForClaim(workspace, claim);
                   const requiredApprovals = workspace.approvalPolicy?.requiredApprovals ?? 1;
                   return (
                     <article className="claim-card" key={claim.id}>
@@ -1645,6 +1645,11 @@ function approvedReviewers(workspace: Workspace, claimId: string) {
       .map((record) => record.reviewer.trim().toLowerCase())
       .filter(Boolean)
   );
+}
+
+function approvalCountForClaim(workspace: Workspace, claim: Claim) {
+  const recorded = approvedReviewers(workspace, claim.id).size;
+  return workspace.approvalPolicy === undefined && claim.status === "Human-approved" ? Math.max(1, recorded) : recorded;
 }
 
 function mergeAssumptions(existing: Assumption[], suggested: Assumption[]) {
