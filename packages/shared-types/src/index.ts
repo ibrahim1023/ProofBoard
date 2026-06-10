@@ -1,4 +1,4 @@
-export const protocolTypes = ["erc4626_vault", "staking_vault", "lending_market", "amm_pool", "custom_vault"] as const;
+export const protocolTypes = ["erc4626_vault", "staking_vault", "lending_market", "amm_pool", "bridge", "custom_vault"] as const;
 export type ProtocolType = (typeof protocolTypes)[number];
 
 export const boardIds = [
@@ -201,6 +201,9 @@ export interface AssetFlow {
     | "add_liquidity"
     | "remove_liquidity"
     | "swap"
+    | "send_message"
+    | "receive_message"
+    | "finalize_message"
     | "privileged"
     | "unknown";
   functions: string[];

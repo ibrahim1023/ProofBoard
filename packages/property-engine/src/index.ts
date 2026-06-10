@@ -196,6 +196,36 @@ const claimTemplates: ClaimTemplate[] = [
     relatedFunctionNames: ["swap"],
     source: ["swap entrypoint", "fee configuration state"],
     when: (map) => hasAnyFunction(map.userFlows, ["swap"])
+  },
+  {
+    id: "claim_bridge_message_validity",
+    title: "Bridge messages require valid origin evidence",
+    text: "Relayed or finalized messages should match an authorized origin, source chain, destination chain, sender, payload, and nonce commitment.",
+    confidence: 0.84,
+    severity: "critical",
+    relatedFunctionNames: ["sendMessage", "relayMessage", "receiveMessage", "finalizeMessage"],
+    source: ["message entrypoints", "message commitment state"],
+    when: (map) => hasAnyFunction(map.userFlows, ["message"]) && hasAnyFunction(map.userFlows, ["relay", "receive", "finalize"])
+  },
+  {
+    id: "claim_bridge_replay_protection",
+    title: "Bridge messages cannot be replayed",
+    text: "A valid cross-chain message should be processed at most once for its source chain, nonce, sender, and payload commitment.",
+    confidence: 0.9,
+    severity: "critical",
+    relatedFunctionNames: ["relayMessage", "receiveMessage", "finalizeMessage"],
+    source: ["message processing entrypoint", "processed-message state"],
+    when: (map) => hasAnyFunction(map.userFlows, ["relay", "receive", "finalize"])
+  },
+  {
+    id: "claim_bridge_finality",
+    title: "Bridge finalization respects finality",
+    text: "Cross-chain messages should not finalize before the documented source-chain finality or challenge condition has been satisfied.",
+    confidence: 0.8,
+    severity: "critical",
+    relatedFunctionNames: ["finalizeMessage", "finalizeWithdrawal"],
+    source: ["finalization entrypoint", "finality or challenge state"],
+    when: (map) => hasAnyFunction(map.userFlows, ["finalize"])
   }
 ];
 
@@ -462,6 +492,38 @@ export function suggestTokenAssumptions(map: ProtocolMap): Assumption[] {
     );
   }
 
+  if (hasAnyFunction(map.userFlows, ["message", "relay", "finalize"])) {
+    assumptions.push(
+      {
+        id: "assumption_bridge_relayer_trust",
+        text: "Relayers, validators, or proof submitters cannot forge an accepted source-chain message commitment.",
+        whyItMatters: "A forged commitment can authorize arbitrary message execution or asset release on the destination chain.",
+        status: "Needs formal proof",
+        severity: "critical",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["relayMessage", "receiveMessage", "finalizeMessage"])
+      },
+      {
+        id: "assumption_bridge_finality",
+        text: "The configured finality or challenge rule is sufficient for the source chain and cannot be bypassed.",
+        whyItMatters: "Premature finalization can accept messages from blocks that later reorganize or are successfully challenged.",
+        status: "Needs symbolic check",
+        severity: "critical",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["finalizeMessage", "finalizeWithdrawal"])
+      },
+      {
+        id: "assumption_bridge_domain_separation",
+        text: "Message commitments include unambiguous source chain, destination chain, sender, nonce, and payload domain separation.",
+        whyItMatters: "Missing domain fields can allow valid messages to be replayed across chains, contracts, or message types.",
+        status: "Needs invariant",
+        severity: "critical",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["sendMessage", "relayMessage", "receiveMessage"])
+      }
+    );
+  }
+
   return assumptions;
 }
 
@@ -706,6 +768,48 @@ function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
         risk: claim.severity,
         assumptions: ["assumption_amm_fee_policy", "assumption_amm_reserve_sync"],
         nextAction: "Generate swap fee, protocol fee, and reserve-delta invariants."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("valid origin evidence")) {
+    return [
+      {
+        ...base,
+        id: "property_bridge_message_validity",
+        text: "Every relayed or finalized message should match an authorized commitment over source chain, destination chain, sender, receiver, nonce, and payload before any state change or asset release.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_bridge_relayer_trust", "assumption_bridge_domain_separation"],
+        nextAction: "Generate valid/invalid proof, chain-domain, sender, nonce, and payload scenarios."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("cannot be replayed")) {
+    return [
+      {
+        ...base,
+        id: "property_bridge_replay_protection",
+        text: "Once a message commitment has been successfully processed, every later attempt to process the same domain-separated commitment should revert without additional state change or asset release.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_bridge_domain_separation"],
+        nextAction: "Generate duplicate relay, duplicate finalization, and cross-domain replay scenarios."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("respects finality")) {
+    return [
+      {
+        ...base,
+        id: "property_bridge_finality",
+        text: "A message should remain non-finalizable until its documented source-chain confirmation, proof, or challenge condition is satisfied, and failed finalization attempts should not consume the message.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_bridge_finality", "assumption_bridge_relayer_trust"],
+        nextAction: "Generate pre-finality, post-finality, reorg, and challenge-window scenarios."
       }
     ];
   }

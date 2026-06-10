@@ -254,4 +254,39 @@ describe("property engine", () => {
     );
     expect(assumptionIds).toEqual(expect.arrayContaining(["assumption_amm_reserve_sync", "assumption_amm_fee_policy"]));
   });
+
+  it("generates bridge message, replay, relayer, and finality coverage", () => {
+    const bridgeMap = analyzeSoliditySource({
+      id: "source_bridge",
+      path: "src/TokenBridge.sol",
+      language: "solidity",
+      content: `contract TokenBridge {
+        mapping(bytes32 => bool) public processedMessages;
+        uint256 public finalityDelay;
+        function sendMessage(uint256 destinationChainId, bytes calldata payload) external {}
+        function relayMessage(bytes32 messageId, bytes calldata payload) external {}
+        function finalizeMessage(bytes32 messageId) external {}
+      }`
+    });
+    const claims = suggestClaimsFromProtocolMap(bridgeMap);
+    const properties = generatePropertiesFromClaims(
+      claims.map((claim) => ({ ...claim, status: "Human-approved" as const })),
+      bridgeMap
+    );
+    const assumptionIds = suggestTokenAssumptions(bridgeMap).map((assumption) => assumption.id);
+
+    expect(claims.map((claim) => claim.id)).toEqual(
+      expect.arrayContaining(["claim_bridge_message_validity", "claim_bridge_replay_protection", "claim_bridge_finality"])
+    );
+    expect(properties.map((property) => property.id)).toEqual(
+      expect.arrayContaining(["property_bridge_message_validity", "property_bridge_replay_protection", "property_bridge_finality"])
+    );
+    expect(assumptionIds).toEqual(
+      expect.arrayContaining([
+        "assumption_bridge_relayer_trust",
+        "assumption_bridge_finality",
+        "assumption_bridge_domain_separation"
+      ])
+    );
+  });
 });

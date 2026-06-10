@@ -448,6 +448,15 @@ function canonicalAssetFlowName(name: string): AssetFlow["kind"] | undefined {
   if (normalized === "swap" || normalized.startsWith("swap")) {
     return "swap";
   }
+  if (normalized.includes("sendmessage") || normalized.includes("dispatchmessage") || normalized.includes("bridgeout")) {
+    return "send_message";
+  }
+  if (normalized.includes("receivemessage") || normalized.includes("relaymessage") || normalized.includes("bridgein")) {
+    return "receive_message";
+  }
+  if (normalized.includes("finalizemessage") || normalized.includes("finalizewithdrawal")) {
+    return "finalize_message";
+  }
   return undefined;
 }
 

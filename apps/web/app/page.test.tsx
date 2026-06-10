@@ -21,6 +21,12 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByRole("option", { name: "AMM Pool" })).toBeInTheDocument();
   });
 
+  it("offers bridges as a protocol intake type", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("option", { name: "Bridge" })).toBeInTheDocument();
+  });
+
   it("renders the workspace shell with demo ERC4626 data", () => {
     render(<Home />);
 

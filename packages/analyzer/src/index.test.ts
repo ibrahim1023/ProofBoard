@@ -270,4 +270,24 @@ describe("analyzeSoliditySource", () => {
     expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["add_liquidity", "remove_liquidity", "swap"]);
     expect(map.criticalState.map((state) => state.name)).toEqual(["token0", "token1", "reserve0", "reserve1", "feeBps"]);
   });
+
+  it("maps bridge message dispatch, relay, and finalization flows", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      path: "src/TokenBridge.sol",
+      content: `contract TokenBridge {
+        address public relayer;
+        mapping(bytes32 => bool) public processedMessages;
+        uint256 public finalityDelay;
+
+        function sendMessage(uint256 destinationChainId, bytes calldata payload) external {}
+        function relayMessage(bytes32 messageId, bytes calldata payload) external {}
+        function finalizeMessage(bytes32 messageId) external {}
+      }`
+    });
+
+    expect(map.userFlows.map((fn) => fn.name)).toEqual(["sendMessage", "relayMessage", "finalizeMessage"]);
+    expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["send_message", "receive_message", "finalize_message"]);
+    expect(map.criticalState.map((state) => state.name)).toEqual(["relayer", "processedMessages", "finalityDelay"]);
+  });
 });
