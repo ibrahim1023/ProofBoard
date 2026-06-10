@@ -24,6 +24,7 @@ In scope:
 - Intent review board with template-based claim suggestions, source evidence, confidence metadata, edit/reject/approve workflows, and an explicit human approval gate.
 - Review-accountability primitives for reviewer identity, claim comments, property comments, approval history, edit history, and rejected-claim rationale.
 - ERC4626 property engine for share accounting, deposit/mint consistency, withdraw/redeem consistency, total assets versus supply, donation/inflation risk, rounding behavior, access control, pause behavior, fee behavior, and token assumptions.
+- Staking-vault coverage for principal attribution, unstaking liquidity, funded reward emissions, and multi-user reward conservation.
 - Skeptic checks that flag weak, vague, vacuous, under-exercised, or assumption-heavy properties before teams over-trust generated tests.
 - Assumption Debt Board with status, severity, linked functions, linked properties, owner, rationale, revisit date, mitigation, accepted-risk justification, accepted-risk visibility, and out-of-scope visibility.
 - Verification Ledger that separates claim status, property status, verification level, evidence, assumptions, risk, next action, and verification-readiness signals.
@@ -90,7 +91,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 101 passing | `npm test` |
+| Unit and eval assertions | 103 passing | `npm test` |
 | Browser E2E checks | 12 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |

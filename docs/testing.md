@@ -42,15 +42,15 @@ Current automated checks cover:
 |---|---:|---|
 | Web component, API, export, and demo tests | 37 | `npm test` |
 | Shared schema and link validation | 7 | `npm test` |
-| Solidity analyzer fixtures | 10 | `npm test` |
-| ERC4626 property-engine fixtures | 10 | `npm test` |
+| Solidity analyzer fixtures | 11 | `npm test` |
+| Protocol property-engine fixtures | 11 | `npm test` |
 | Foundry harness-generator fixtures | 12 | `npm test` |
 | Foundry verification-runner fixtures | 9 | `npm test` |
 | Foundry result-parser fixtures | 8 | `npm test` |
 | Deterministic eval assertions | 8 | `npm test` and `npm run eval` |
 | Browser E2E checks | 12 | `npm run test:e2e` |
 
-`npm test` currently covers 101 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
+`npm test` currently covers 103 web, API, package, runner, parser, and eval assertions. Browser E2E checks are listed separately because Playwright runs them against a local production Next server.
 
 ### Eval And Validation Metrics
 

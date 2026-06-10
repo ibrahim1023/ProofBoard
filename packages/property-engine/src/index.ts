@@ -116,6 +116,26 @@ const claimTemplates: ClaimTemplate[] = [
     relatedFunctionNames: ["pause", "setFeeRecipient", "setStrategy", "updateStrategy"],
     source: ["role map", "privileged function list"],
     when: (map) => map.privilegedFunctions.length > 0
+  },
+  {
+    id: "claim_staking_principal_accounting",
+    title: "Staked principal remains attributable",
+    text: "Stake and unstake flows should preserve each user's attributable principal within documented rounding bounds.",
+    confidence: 0.84,
+    severity: "critical",
+    relatedFunctionNames: ["stake", "unstake"],
+    source: ["stake/unstake entrypoints", "staking balance state"],
+    when: (map) => hasAnyFunction(map.userFlows, ["stake"]) && hasAnyFunction(map.userFlows, ["unstake"])
+  },
+  {
+    id: "claim_staking_rewards_conserved",
+    title: "Reward claims conserve funded rewards",
+    text: "Claimed staking rewards should not exceed funded rewards plus documented emissions and should remain attributable across users.",
+    confidence: 0.76,
+    severity: "high",
+    relatedFunctionNames: ["claimRewards", "getReward"],
+    source: ["reward claim entrypoints", "reward token dependency"],
+    when: (map) => hasAnyFunction(map.userFlows, ["claimreward", "getreward"])
   }
 ];
 
@@ -310,6 +330,29 @@ export function suggestTokenAssumptions(map: ProtocolMap): Assumption[] {
     });
   }
 
+  if (hasAnyFunction(map.userFlows, ["stake", "unstake"])) {
+    assumptions.push(
+      {
+        id: "assumption_unstaking_liquidity",
+        text: "Staked principal remains available when users are permitted to unstake.",
+        whyItMatters: "External staking or delegation can make recorded principal temporarily or permanently illiquid.",
+        status: "Needs invariant",
+        severity: "high",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["stake", "unstake"])
+      },
+      {
+        id: "assumption_rewards_funded",
+        text: "Reward emissions are funded and cannot exceed the available reward-token balance.",
+        whyItMatters: "Unfunded or over-accrued rewards can make claims insolvent or dilute later claimants.",
+        status: "Needs invariant",
+        severity: "high",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["claimRewards", "getReward"])
+      }
+    );
+  }
+
   return assumptions;
 }
 
@@ -442,6 +485,34 @@ function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
         risk: claim.severity,
         assumptions: ["assumption_admin_policy"],
         nextAction: "Generate access-control invariant and review privileged asset movement paths."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("staked principal")) {
+    return [
+      {
+        ...base,
+        id: "property_staking_principal_conservation",
+        text: "Across stake and unstake flows, aggregate user principal should not exceed received staking assets and each user's unstakeable principal should remain bounded by their recorded stake.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_standard_erc20", "assumption_unstaking_liquidity"],
+        nextAction: "Generate multi-actor stake and unstake accounting invariants."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("reward claims")) {
+    return [
+      {
+        ...base,
+        id: "property_staking_reward_conservation",
+        text: "Across reward accrual and claim flows, cumulative rewards paid should not exceed funded rewards plus documented emissions, within explicit rounding bounds.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_rewards_funded", "assumption_standard_erc20"],
+        nextAction: "Generate multi-user reward accrual and claim invariants."
       }
     ];
   }

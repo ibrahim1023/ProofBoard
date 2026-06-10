@@ -206,4 +206,25 @@ describe("analyzeSoliditySource", () => {
       ])
     );
   });
+
+  it("maps staking principal and reward flows", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      path: "src/StakingVault.sol",
+      content: `contract StakingVault {
+        IERC20 public stakingToken;
+        IERC20 public rewardToken;
+        uint256 public rewardRate;
+
+        function stake(uint256 assets) external {}
+        function unstake(uint256 assets) external {}
+        function claimRewards() external {}
+        function setRewardRate(uint256 nextRate) external onlyOwner {}
+      }`
+    });
+
+    expect(map.userFlows.map((fn) => fn.name)).toEqual(["stake", "unstake", "claimRewards"]);
+    expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["stake", "unstake", "claim_rewards", "privileged"]);
+    expect(map.privilegedFunctions.map((fn) => fn.name)).toEqual(["setRewardRate"]);
+  });
 });

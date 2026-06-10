@@ -186,7 +186,7 @@ export interface Role {
 export interface AssetFlow {
   id: string;
   name: string;
-  kind: "deposit" | "mint" | "withdraw" | "redeem" | "privileged" | "unknown";
+  kind: "deposit" | "mint" | "withdraw" | "redeem" | "stake" | "unstake" | "claim_rewards" | "privileged" | "unknown";
   functions: string[];
   assets: string[];
   notes: string;

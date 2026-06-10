@@ -155,4 +155,31 @@ describe("property engine", () => {
     expect(claimIds).toContain("claim_exchange_rate_consistency");
     expect(claimIds).toContain("claim_donation_inflation_resistance");
   });
+
+  it("generates staking principal and reward assurance coverage", () => {
+    const stakingMap = analyzeSoliditySource({
+      id: "source_staking",
+      path: "src/StakingVault.sol",
+      language: "solidity",
+      content: `contract StakingVault {
+        IERC20 public stakingToken;
+        IERC20 public rewardToken;
+        function stake(uint256 assets) external {}
+        function unstake(uint256 assets) external {}
+        function claimRewards() external {}
+      }`
+    });
+    const claims = suggestClaimsFromProtocolMap(stakingMap);
+    const approved = claims.map((claim) => ({ ...claim, status: "Human-approved" as const }));
+    const properties = generatePropertiesFromClaims(approved, stakingMap);
+    const assumptionIds = suggestTokenAssumptions(stakingMap).map((assumption) => assumption.id);
+
+    expect(claims.map((claim) => claim.id)).toEqual(
+      expect.arrayContaining(["claim_staking_principal_accounting", "claim_staking_rewards_conserved"])
+    );
+    expect(properties.map((property) => property.id)).toEqual(
+      expect.arrayContaining(["property_staking_principal_conservation", "property_staking_reward_conservation"])
+    );
+    expect(assumptionIds).toEqual(expect.arrayContaining(["assumption_unstaking_liquidity", "assumption_rewards_funded"]));
+  });
 });

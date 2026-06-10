@@ -240,14 +240,14 @@ function detectRoles(contracts: Contract[], privilegedFunctions: ProtocolFunctio
 
 function detectAssetFlows(functions: ProtocolFunction[]): AssetFlow[] {
   return functions
-    .filter((fn) => canonicalVaultFlowName(fn.name) !== undefined || fn.flow === "privileged")
+    .filter((fn) => canonicalAssetFlowName(fn.name) !== undefined || fn.flow === "privileged")
     .map((fn) => ({
       id: makeId("flow", fn.name),
       name: fn.name,
       kind: inferAssetFlowKind(fn.name, fn.flow),
       functions: [fn.id],
       assets: ["underlying ERC20"],
-      notes: fn.flow === "privileged" ? "Privileged flow that may affect vault policy." : `ERC4626-style ${fn.name} flow.`
+      notes: fn.flow === "privileged" ? "Privileged flow that may affect protocol policy." : `User-facing ${fn.name} asset flow.`
     }));
 }
 
@@ -281,7 +281,7 @@ function inferFunctionFlow(name: string, tail: string, modifiers: string[]): Fun
     return "privileged";
   }
 
-  if (canonicalVaultFlowName(normalizedName)) {
+  if (canonicalAssetFlowName(normalizedName)) {
     return "user";
   }
 
@@ -293,7 +293,7 @@ function inferFunctionFlow(name: string, tail: string, modifiers: string[]): Fun
 }
 
 function inferAssetFlowKind(name: string, flow: FunctionFlow): AssetFlow["kind"] {
-  const canonicalName = canonicalVaultFlowName(name);
+  const canonicalName = canonicalAssetFlowName(name);
   if (canonicalName) {
     return canonicalName;
   }
@@ -345,8 +345,8 @@ function describeFunction(name: string, modifiers: string[]) {
   const modifierNote = modifiers.length > 0 ? ` Uses modifiers: ${modifiers.join(", ")}.` : "";
   const normalized = name.toLowerCase();
 
-  if (canonicalVaultFlowName(normalized)) {
-    return `ERC4626-style user asset movement flow.${modifierNote}`;
+  if (canonicalAssetFlowName(normalized)) {
+    return `User-facing protocol asset movement flow.${modifierNote}`;
   }
 
   if (normalized.includes("pause")) {
@@ -409,6 +409,25 @@ function normalizeInheritance(value: string) {
 function canonicalVaultFlowName(name: string): AssetFlow["kind"] | undefined {
   const normalized = name.toLowerCase();
   return (["deposit", "mint", "withdraw", "redeem"] as const).find((flow) => normalized === flow || normalized.startsWith(flow));
+}
+
+function canonicalAssetFlowName(name: string): AssetFlow["kind"] | undefined {
+  const vaultFlow = canonicalVaultFlowName(name);
+  if (vaultFlow) {
+    return vaultFlow;
+  }
+
+  const normalized = name.toLowerCase();
+  if (normalized === "stake" || normalized.startsWith("stake")) {
+    return "stake";
+  }
+  if (normalized === "unstake" || normalized.startsWith("unstake")) {
+    return "unstake";
+  }
+  if (normalized.includes("claimreward") || normalized.includes("getreward")) {
+    return "claim_rewards";
+  }
+  return undefined;
 }
 
 function makeId(prefix: string, value: string) {
