@@ -15,7 +15,7 @@ ProofBoard is not an AI auditor, vulnerability scanner, formal proof engine, or 
 
 ## Product Focus
 
-The current MVP targets ERC4626 and vault-like protocols. The goal is to help teams define and test the secure core before broader audit or verification work.
+ProofBoard's deepest executable workflow targets ERC4626 and vault-like protocols. The workspace also provides secure-core intake, claim templates, candidate properties, and assumption tracking for staking vaults, lending markets, AMMs, bridges, and governance or upgradeable systems.
 
 In scope:
 
@@ -49,8 +49,10 @@ Out of scope for the MVP:
 - Claims that a protocol is safe or vulnerability-free.
 - Hosted sandbox execution.
 - Automatic formal proof generation.
-- Full arbitrary DeFi coverage beyond ERC4626 and vault-like secure cores.
-- Mandatory paid LLM API or mandatory GitHub App integration.
+- Full arbitrary DeFi support beyond the implemented ERC4626, staking, lending, AMM, bridge, and governance secure-core templates.
+- Chain-specific execution parity for every supported intake type; generated harnesses still require protocol-specific wiring.
+- Authenticated private-repository or mandatory GitHub App integration.
+- Mandatory paid LLM API access.
 
 Deferred scope and next expansion candidates are tracked in `docs/deferred-scope.md`.
 
@@ -67,8 +69,9 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 ### Protocol Assurance
 
-- Deterministic Solidity analysis and ERC4626 property templates in local TypeScript packages
+- Deterministic Solidity analysis and secure-core templates for ERC4626, staking, lending, AMM, bridge, and governance systems
 - Foundry invariant harness generation and Forge output parsing
+- SMTChecker, Scribble, Certora, Echidna, Halmos, and Medusa configuration or specification scaffolds
 - Local Forge or Docker-based verification command planning and execution
 - Structured JSON and Markdown audit-prep exports
 
@@ -110,11 +113,11 @@ The eval score is a deterministic fixture score for the current release-blocker 
 
 ### Workspace UI
 
-The web app in `apps/web` is the main ProofBoard surface. It provides project intake, demo workspace loading, board navigation, editable protocol notes, Solidity paste input, and board-specific review workflows.
+The web app in `apps/web` is the main ProofBoard surface. It provides pasted Solidity, local multi-file, and bounded public GitHub intake; protocol selection; demo loading; board navigation; editable protocol notes; distinct-reviewer approval quorum; and board-specific review workflows.
 
 ### Shared Data Model
 
-`packages/shared-types` defines the structured workspace model for sources, protocol maps, contracts, functions, state variables, events, modifiers, external calls, claims, properties, assumptions, review records, verification runs, evidence, and audit packets.
+`packages/shared-types` defines the structured workspace model for repository origin, approval policy, sources, protocol maps, contracts, functions, state variables, events, modifiers, external calls, claims, properties, assumptions, review records, verification runs, evidence, and audit packets.
 
 ### Protocol Analyzer
 
@@ -122,7 +125,7 @@ The web app in `apps/web` is the main ProofBoard surface. It provides project in
 
 ### Property Engine
 
-`packages/property-engine` generates template-based ERC4626 claims, properties, token assumptions, property-to-assumption links, and skeptic review findings. It also validates structured local or hosted LLM claim payloads and accepts insufficient-evidence refusals. The web app can call an Ollama-compatible local model through `/api/generate-claims`; the adapter sends bounded source and protocol-map context, requests schema-constrained JSON, and revalidates the response before adding AI-inferred claims. Generated claims and properties never become approved or proven automatically.
+`packages/property-engine` generates protocol-aware claims, candidate properties, assumptions, property-to-assumption links, and skeptic findings for ERC4626, staking, lending, AMM, bridge, and governance secure cores. It also validates structured local or hosted LLM claim payloads and accepts insufficient-evidence refusals. The web app can call an Ollama-compatible local model through `/api/generate-claims`; the adapter sends bounded source and protocol-map context, requests schema-constrained JSON, and revalidates the response before adding AI-inferred claims. Generated claims and properties never become approved or proven automatically.
 
 ### Harness Generator
 
@@ -162,7 +165,7 @@ Generated harnesses are traceable to selected ProofBoard property ids. They are 
 ```text
 apps/web/                    Web workspace UI
 packages/analyzer/           Solidity and project analysis
-packages/property-engine/    ERC4626 property and assumption templates
+packages/property-engine/    Protocol claim, property, and assumption templates
 packages/harness-generator/  Foundry invariant harness generation
 packages/verification-runner/ Local and Docker Foundry run planning
 packages/result-parser/      Foundry output parsing and ledger updates
