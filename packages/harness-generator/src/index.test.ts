@@ -72,7 +72,9 @@ describe("generateFoundryHarnessBundle", () => {
       "verification/smtchecker.json",
       "verification/scribble/ANNOTATIONS.md",
       "verification/certora/Proofboard.conf",
-      "verification/certora/Proofboard.spec"
+      "verification/certora/Proofboard.spec",
+      "verification/echidna/echidna.yaml",
+      "verification/echidna/PROPERTIES.md"
     ]);
   });
 
@@ -125,6 +127,20 @@ describe("generateFoundryHarnessBundle", () => {
     expect(specification?.content).toContain("assert <BOOLEAN_EXPRESSION>");
     expect(specification?.content).toContain("contains no active rules");
     expect(specification?.content).not.toContain("assert true");
+  });
+
+  it("generates an Echidna property-mode configuration and inactive property worksheet", () => {
+    const bundle = generateFoundryHarnessBundle(workspace);
+    const configuration = bundle.files.find((file) => file.path === "verification/echidna/echidna.yaml");
+    const properties = bundle.files.find((file) => file.path === "verification/echidna/PROPERTIES.md");
+
+    expect(configuration?.content).toContain("testMode: property");
+    expect(configuration?.content).toContain("corpusDir: corpus-echidna");
+    expect(properties?.propertyIds).toEqual(["property_share_accounting"]);
+    expect(properties?.content).toContain("function echidna_pb_property_share_accounting()");
+    expect(properties?.content).toContain("return <BOOLEAN_EXPRESSION>;");
+    expect(properties?.content).toContain("not fuzzing evidence");
+    expect(properties?.content).not.toContain("return true;");
   });
 
   it.runIf(forgeAvailable())("compiles generated scaffold contracts in a Foundry fixture", () => {

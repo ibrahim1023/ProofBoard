@@ -27,6 +27,7 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
       "Review verification/smtchecker.json before running solc --standard-json; compiler warnings and unproved targets are evidence, not proofs.",
       "Complete the boolean expressions in verification/scribble/ANNOTATIONS.md and review the instrumented Solidity before running Scribble.",
       "Complete and activate the reviewed rules in verification/certora/Proofboard.spec before running the generated Certora configuration.",
+      "Build a target-specific Echidna harness from verification/echidna/PROPERTIES.md before running the generated property-mode configuration.",
       "Run the suggested forge test command locally and paste the raw output into ProofBoard Results."
     ],
     files: [
@@ -84,6 +85,16 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
         path: "verification/certora/Proofboard.spec",
         propertyIds,
         content: certoraSpecification(contractName, sourcePath, properties)
+      },
+      {
+        path: "verification/echidna/echidna.yaml",
+        propertyIds,
+        content: echidnaConfiguration()
+      },
+      {
+        path: "verification/echidna/PROPERTIES.md",
+        propertyIds,
+        content: echidnaProperties(contractName, sourcePath, properties)
       }
     ]
   };
@@ -466,6 +477,55 @@ function safeComment(value: string) {
 
 function escapeCvlMessage(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function echidnaConfiguration() {
+  return `testMode: property
+testLimit: 50000
+seqLen: 100
+shrinkLimit: 5000
+coverage: true
+corpusDir: corpus-echidna
+allContracts: false
+`;
+}
+
+function echidnaProperties(contractName: string, sourcePath: string, properties: Property[]) {
+  const templates = properties.map(
+    (property) => `### ${property.id}
+
+Intent: ${singleLine(property.text)}
+
+Risk: ${property.risk}
+
+\`\`\`solidity
+function echidna_pb_${verificationIdentifier(property)}() public view returns (bool) {
+    return <BOOLEAN_EXPRESSION>;
+}
+\`\`\`
+`
+  );
+
+  return `# ProofBoard Echidna Property Worksheet
+
+Target contract: \`${contractName}\`
+
+Target source: \`${sourcePath}\`
+
+This file is an inactive harness worksheet, not fuzzing evidence. Create a dedicated Echidna harness that deploys or inherits the reviewed target, exposes only intended state-changing actions, and then adds completed property functions from this file.
+
+Before running Echidna:
+
+1. Replace each \`<BOOLEAN_EXPRESSION>\` with a target-specific Solidity expression.
+2. Define constructor state, actors, balances, token approvals, and privileged roles.
+3. Bound or reject meaningless inputs without excluding security-relevant states.
+4. Review whether the configured sequence length can reach the intended protocol states.
+5. Preserve the seed, corpus, coverage, and raw failure sequence before recording evidence.
+
+## Property Templates
+
+${templates.join("\n") || "No properties were selected. Add human-approved properties before creating Echidna properties.\n"}
+`;
 }
 
 function invariantName(property: Property) {
