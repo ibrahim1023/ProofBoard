@@ -166,6 +166,36 @@ const claimTemplates: ClaimTemplate[] = [
     relatedFunctionNames: ["borrow", "repay", "liquidate"],
     source: ["borrow/repay entrypoints", "reserve and debt state"],
     when: (map) => hasAnyFunction(map.userFlows, ["borrow", "repay"])
+  },
+  {
+    id: "claim_amm_reserve_consistency",
+    title: "AMM reserves track token balances",
+    text: "Recorded AMM reserves should remain consistent with token balances and the documented pricing invariant across liquidity and swap flows.",
+    confidence: 0.86,
+    severity: "critical",
+    relatedFunctionNames: ["addLiquidity", "removeLiquidity", "swap"],
+    source: ["reserve state", "liquidity and swap entrypoints"],
+    when: (map) => hasAnyFunction(map.userFlows, ["swap"]) && hasAnyFunction(map.userFlows, ["liquidity"])
+  },
+  {
+    id: "claim_amm_lp_share_accounting",
+    title: "Liquidity provider shares remain proportional",
+    text: "Liquidity minting and burning should preserve each provider's proportional claim on pool reserves within documented rounding bounds.",
+    confidence: 0.84,
+    severity: "critical",
+    relatedFunctionNames: ["addLiquidity", "removeLiquidity"],
+    source: ["liquidity entrypoints", "LP supply state"],
+    when: (map) => hasAnyFunction(map.userFlows, ["addliquidity"]) && hasAnyFunction(map.userFlows, ["removeliquidity"])
+  },
+  {
+    id: "claim_amm_fee_accounting",
+    title: "Swap fees remain accounted",
+    text: "Swap fees should accrue according to the configured fee policy without disappearing from reserves or being charged beyond documented bounds.",
+    confidence: 0.8,
+    severity: "high",
+    relatedFunctionNames: ["swap"],
+    source: ["swap entrypoint", "fee configuration state"],
+    when: (map) => hasAnyFunction(map.userFlows, ["swap"])
   }
 ];
 
@@ -409,6 +439,29 @@ export function suggestTokenAssumptions(map: ProtocolMap): Assumption[] {
     );
   }
 
+  if (hasAnyFunction(map.userFlows, ["swap", "liquidity"])) {
+    assumptions.push(
+      {
+        id: "assumption_amm_reserve_sync",
+        text: "Recorded reserves are synchronized with actual token balances after swaps, liquidity changes, donations, and token behavior.",
+        whyItMatters: "Unsynchronized reserves can corrupt pricing, LP share value, and fee accounting.",
+        status: "Needs invariant",
+        severity: "critical",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["addLiquidity", "removeLiquidity", "swap"])
+      },
+      {
+        id: "assumption_amm_fee_policy",
+        text: "Swap and protocol fee parameters stay within documented bounds and are applied exactly once.",
+        whyItMatters: "Incorrect or mutable fee application can leak value, overcharge traders, or misstate pool reserves.",
+        status: "Needs invariant",
+        severity: "high",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["swap"])
+      }
+    );
+  }
+
   return assumptions;
 }
 
@@ -611,6 +664,48 @@ function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
         risk: claim.severity,
         assumptions: ["assumption_bad_debt_policy", "assumption_oracle_fresh"],
         nextAction: "Generate aggregate debt, reserve, repayment, and bad-debt accounting invariants."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("amm reserves")) {
+    return [
+      {
+        ...base,
+        id: "property_amm_reserve_consistency",
+        text: "After add-liquidity, remove-liquidity, swap, and direct-token-transfer scenarios, recorded reserves should match accounted token balances and preserve the documented pricing invariant within rounding bounds.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_amm_reserve_sync", "assumption_standard_erc20"],
+        nextAction: "Generate reserve-balance and pricing-invariant scenarios across liquidity and swap flows."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("liquidity provider shares")) {
+    return [
+      {
+        ...base,
+        id: "property_amm_lp_share_accounting",
+        text: "Across liquidity mint and burn flows, LP shares should represent a proportional claim on both reserves and no provider should redeem more than their accounted pool ownership.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_amm_reserve_sync", "assumption_standard_erc20"],
+        nextAction: "Generate multi-provider add/remove liquidity and rounding invariants."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("swap fees")) {
+    return [
+      {
+        ...base,
+        id: "property_amm_fee_accounting",
+        text: "For every successful swap, the fee charged should stay within configured bounds and the retained fee value should remain explicitly represented in pool or protocol accounting.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_amm_fee_policy", "assumption_amm_reserve_sync"],
+        nextAction: "Generate swap fee, protocol fee, and reserve-delta invariants."
       }
     ];
   }

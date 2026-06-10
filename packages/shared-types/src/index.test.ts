@@ -121,6 +121,10 @@ describe("shared schema validation", () => {
     expect(validateWorkspace({ ...validWorkspace, protocolType: "lending_market" })).toEqual([]);
   });
 
+  it("accepts AMM pool workspaces", () => {
+    expect(validateWorkspace({ ...validWorkspace, protocolType: "amm_pool" })).toEqual([]);
+  });
+
   it("rejects invalid verification levels", () => {
     const issues = validateProperty({
       ...validWorkspace.properties[0],

@@ -15,6 +15,12 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByRole("option", { name: "Lending Market" })).toBeInTheDocument();
   });
 
+  it("offers AMM pools as a protocol intake type", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("option", { name: "AMM Pool" })).toBeInTheDocument();
+  });
+
   it("renders the workspace shell with demo ERC4626 data", () => {
     render(<Home />);
 

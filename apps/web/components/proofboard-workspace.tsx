@@ -48,6 +48,7 @@ const protocolLabels: Record<ProtocolType, string> = {
   erc4626_vault: "ERC4626 Vault",
   staking_vault: "Staking Vault",
   lending_market: "Lending Market",
+  amm_pool: "AMM Pool",
   custom_vault: "Custom Vault"
 };
 
@@ -521,6 +522,7 @@ export function ProofboardWorkspace() {
                     <option value="erc4626_vault">ERC4626 Vault</option>
                     <option value="staking_vault">Staking Vault</option>
                     <option value="lending_market">Lending Market</option>
+                    <option value="amm_pool">AMM Pool</option>
                     <option value="custom_vault">Custom Vault</option>
                   </select>
                 </label>

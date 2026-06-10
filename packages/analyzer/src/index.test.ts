@@ -248,4 +248,26 @@ describe("analyzeSoliditySource", () => {
     expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["supply", "borrow", "repay", "liquidate"]);
     expect(map.criticalState.map((state) => state.name)).toEqual(["collateralToken", "debtToken", "priceOracle"]);
   });
+
+  it("maps AMM liquidity and swap flows", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      path: "src/AmmPool.sol",
+      content: `contract AmmPool {
+        IERC20 public token0;
+        IERC20 public token1;
+        uint256 public reserve0;
+        uint256 public reserve1;
+        uint256 public feeBps;
+
+        function addLiquidity(uint256 amount0, uint256 amount1) external {}
+        function removeLiquidity(uint256 shares) external {}
+        function swap(uint256 amountIn, address tokenIn) external {}
+      }`
+    });
+
+    expect(map.userFlows.map((fn) => fn.name)).toEqual(["addLiquidity", "removeLiquidity", "swap"]);
+    expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["add_liquidity", "remove_liquidity", "swap"]);
+    expect(map.criticalState.map((state) => state.name)).toEqual(["token0", "token1", "reserve0", "reserve1", "feeBps"]);
+  });
 });

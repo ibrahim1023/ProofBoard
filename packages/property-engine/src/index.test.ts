@@ -222,4 +222,36 @@ describe("property engine", () => {
       expect.arrayContaining(["assumption_oracle_fresh", "assumption_liquidation_execution", "assumption_bad_debt_policy"])
     );
   });
+
+  it("generates AMM reserve, LP share, and fee coverage", () => {
+    const ammMap = analyzeSoliditySource({
+      id: "source_amm",
+      path: "src/AmmPool.sol",
+      language: "solidity",
+      content: `contract AmmPool {
+        IERC20 public token0;
+        IERC20 public token1;
+        uint256 public reserve0;
+        uint256 public reserve1;
+        uint256 public feeBps;
+        function addLiquidity(uint256 amount0, uint256 amount1) external {}
+        function removeLiquidity(uint256 shares) external {}
+        function swap(uint256 amountIn, address tokenIn) external {}
+      }`
+    });
+    const claims = suggestClaimsFromProtocolMap(ammMap);
+    const properties = generatePropertiesFromClaims(
+      claims.map((claim) => ({ ...claim, status: "Human-approved" as const })),
+      ammMap
+    );
+    const assumptionIds = suggestTokenAssumptions(ammMap).map((assumption) => assumption.id);
+
+    expect(claims.map((claim) => claim.id)).toEqual(
+      expect.arrayContaining(["claim_amm_reserve_consistency", "claim_amm_lp_share_accounting", "claim_amm_fee_accounting"])
+    );
+    expect(properties.map((property) => property.id)).toEqual(
+      expect.arrayContaining(["property_amm_reserve_consistency", "property_amm_lp_share_accounting", "property_amm_fee_accounting"])
+    );
+    expect(assumptionIds).toEqual(expect.arrayContaining(["assumption_amm_reserve_sync", "assumption_amm_fee_policy"]));
+  });
 });

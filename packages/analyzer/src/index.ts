@@ -439,6 +439,15 @@ function canonicalAssetFlowName(name: string): AssetFlow["kind"] | undefined {
   if (normalized === "liquidate" || normalized.startsWith("liquidat")) {
     return "liquidate";
   }
+  if (normalized.includes("addliquidity") || normalized === "mintliquidity") {
+    return "add_liquidity";
+  }
+  if (normalized.includes("removeliquidity") || normalized === "burnliquidity") {
+    return "remove_liquidity";
+  }
+  if (normalized === "swap" || normalized.startsWith("swap")) {
+    return "swap";
+  }
   return undefined;
 }
 
