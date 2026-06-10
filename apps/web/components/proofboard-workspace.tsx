@@ -47,6 +47,7 @@ const boardItems: Array<{ id: BoardId; label: string }> = [
 const protocolLabels: Record<ProtocolType, string> = {
   erc4626_vault: "ERC4626 Vault",
   staking_vault: "Staking Vault",
+  lending_market: "Lending Market",
   custom_vault: "Custom Vault"
 };
 
@@ -519,6 +520,7 @@ export function ProofboardWorkspace() {
                   >
                     <option value="erc4626_vault">ERC4626 Vault</option>
                     <option value="staking_vault">Staking Vault</option>
+                    <option value="lending_market">Lending Market</option>
                     <option value="custom_vault">Custom Vault</option>
                   </select>
                 </label>

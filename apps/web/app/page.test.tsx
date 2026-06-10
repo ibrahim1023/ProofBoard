@@ -9,6 +9,12 @@ afterEach(() => {
 });
 
 describe("ProofBoard workspace", () => {
+  it("offers lending as a protocol intake type", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("option", { name: "Lending Market" })).toBeInTheDocument();
+  });
+
   it("renders the workspace shell with demo ERC4626 data", () => {
     render(<Home />);
 

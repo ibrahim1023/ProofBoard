@@ -227,4 +227,25 @@ describe("analyzeSoliditySource", () => {
     expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["stake", "unstake", "claim_rewards", "privileged"]);
     expect(map.privilegedFunctions.map((fn) => fn.name)).toEqual(["setRewardRate"]);
   });
+
+  it("maps lending collateral, debt, repayment, and liquidation flows", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      path: "src/LendingMarket.sol",
+      content: `contract LendingMarket {
+        IERC20 public collateralToken;
+        IERC20 public debtToken;
+        address public priceOracle;
+
+        function supplyCollateral(uint256 assets) external {}
+        function borrow(uint256 assets) external {}
+        function repay(uint256 assets) external {}
+        function liquidate(address borrower, uint256 repayAssets) external {}
+      }`
+    });
+
+    expect(map.userFlows.map((fn) => fn.name)).toEqual(["supplyCollateral", "borrow", "repay", "liquidate"]);
+    expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["supply", "borrow", "repay", "liquidate"]);
+    expect(map.criticalState.map((state) => state.name)).toEqual(["collateralToken", "debtToken", "priceOracle"]);
+  });
 });

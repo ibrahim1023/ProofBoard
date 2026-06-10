@@ -1,4 +1,4 @@
-export const protocolTypes = ["erc4626_vault", "staking_vault", "custom_vault"] as const;
+export const protocolTypes = ["erc4626_vault", "staking_vault", "lending_market", "custom_vault"] as const;
 export type ProtocolType = (typeof protocolTypes)[number];
 
 export const boardIds = [
@@ -186,7 +186,20 @@ export interface Role {
 export interface AssetFlow {
   id: string;
   name: string;
-  kind: "deposit" | "mint" | "withdraw" | "redeem" | "stake" | "unstake" | "claim_rewards" | "privileged" | "unknown";
+  kind:
+    | "deposit"
+    | "mint"
+    | "withdraw"
+    | "redeem"
+    | "stake"
+    | "unstake"
+    | "claim_rewards"
+    | "supply"
+    | "borrow"
+    | "repay"
+    | "liquidate"
+    | "privileged"
+    | "unknown";
   functions: string[];
   assets: string[];
   notes: string;

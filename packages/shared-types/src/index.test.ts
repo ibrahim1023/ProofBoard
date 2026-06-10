@@ -117,6 +117,10 @@ describe("shared schema validation", () => {
     expect(validateWorkspace(validWorkspace)).toEqual([]);
   });
 
+  it("accepts lending market workspaces", () => {
+    expect(validateWorkspace({ ...validWorkspace, protocolType: "lending_market" })).toEqual([]);
+  });
+
   it("rejects invalid verification levels", () => {
     const issues = validateProperty({
       ...validWorkspace.properties[0],

@@ -427,6 +427,18 @@ function canonicalAssetFlowName(name: string): AssetFlow["kind"] | undefined {
   if (normalized.includes("claimreward") || normalized.includes("getreward")) {
     return "claim_rewards";
   }
+  if (normalized === "supply" || normalized.startsWith("supply") || normalized.includes("depositcollateral")) {
+    return "supply";
+  }
+  if (normalized === "borrow" || normalized.startsWith("borrow")) {
+    return "borrow";
+  }
+  if (normalized === "repay" || normalized.startsWith("repay")) {
+    return "repay";
+  }
+  if (normalized === "liquidate" || normalized.startsWith("liquidat")) {
+    return "liquidate";
+  }
   return undefined;
 }
 

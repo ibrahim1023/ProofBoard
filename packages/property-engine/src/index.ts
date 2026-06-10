@@ -136,6 +136,36 @@ const claimTemplates: ClaimTemplate[] = [
     relatedFunctionNames: ["claimRewards", "getReward"],
     source: ["reward claim entrypoints", "reward token dependency"],
     when: (map) => hasAnyFunction(map.userFlows, ["claimreward", "getreward"])
+  },
+  {
+    id: "claim_lending_collateralization",
+    title: "Borrowing remains sufficiently collateralized",
+    text: "Borrowing should remain bounded by collateral value, collateral factors, and fresh oracle prices across supply, borrow, repay, and withdrawal flows.",
+    confidence: 0.86,
+    severity: "critical",
+    relatedFunctionNames: ["supplyCollateral", "borrow", "repay", "withdrawCollateral"],
+    source: ["collateral and borrow entrypoints", "oracle dependency"],
+    when: (map) => hasAnyFunction(map.userFlows, ["borrow"]) && hasAnyFunction(map.userFlows, ["supply", "collateral"])
+  },
+  {
+    id: "claim_lending_liquidation_bounds",
+    title: "Liquidations respect solvency bounds",
+    text: "Liquidations should only seize collateral from eligible unhealthy positions and should respect documented close-factor and incentive bounds.",
+    confidence: 0.83,
+    severity: "critical",
+    relatedFunctionNames: ["liquidate"],
+    source: ["liquidation entrypoint", "collateral and debt state"],
+    when: (map) => hasAnyFunction(map.userFlows, ["liquidat"])
+  },
+  {
+    id: "claim_lending_debt_conservation",
+    title: "Debt and bad debt remain accounted",
+    text: "Aggregate borrower debt, repayments, reserves, and realized bad debt should remain explicitly accounted without silently creating or forgiving liabilities.",
+    confidence: 0.78,
+    severity: "critical",
+    relatedFunctionNames: ["borrow", "repay", "liquidate"],
+    source: ["borrow/repay entrypoints", "reserve and debt state"],
+    when: (map) => hasAnyFunction(map.userFlows, ["borrow", "repay"])
   }
 ];
 
@@ -318,7 +348,10 @@ export function suggestTokenAssumptions(map: ProtocolMap): Assumption[] {
     });
   }
 
-  if (map.externalCalls.some((call) => call.target.toLowerCase().includes("oracle"))) {
+  if (
+    map.externalCalls.some((call) => call.target.toLowerCase().includes("oracle")) ||
+    (hasAnyFunction(map.userFlows, ["borrow"]) && hasAnyFunction(map.userFlows, ["liquidat"]))
+  ) {
     assumptions.push({
       id: "assumption_oracle_fresh",
       text: "Oracle price data is fresh and cannot be cheaply manipulated.",
@@ -349,6 +382,29 @@ export function suggestTokenAssumptions(map: ProtocolMap): Assumption[] {
         severity: "high",
         relatedProperties: [],
         relatedFunctions: resolveFunctionNames(map, ["claimRewards", "getReward"])
+      }
+    );
+  }
+
+  if (hasAnyFunction(map.userFlows, ["borrow", "liquidat"])) {
+    assumptions.push(
+      {
+        id: "assumption_liquidation_execution",
+        text: "Eligible unhealthy positions can be liquidated before losses exceed available collateral and reserves.",
+        whyItMatters: "Congestion, unprofitable incentives, or close-factor limits can let insolvency grow into protocol bad debt.",
+        status: "Needs invariant",
+        severity: "critical",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["borrow", "liquidate"])
+      },
+      {
+        id: "assumption_bad_debt_policy",
+        text: "Bad debt recognition and absorption follow an explicit reserve or socialization policy.",
+        whyItMatters: "Unspecified bad-debt handling can hide insolvency or shift losses between suppliers.",
+        status: "Unresolved",
+        severity: "critical",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["borrow", "repay", "liquidate"])
       }
     );
   }
@@ -513,6 +569,48 @@ function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
         risk: claim.severity,
         assumptions: ["assumption_rewards_funded", "assumption_standard_erc20"],
         nextAction: "Generate multi-user reward accrual and claim invariants."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("sufficiently collateralized")) {
+    return [
+      {
+        ...base,
+        id: "property_lending_collateralization",
+        text: "After supply, borrow, repay, collateral withdrawal, and price-update flows, each non-liquidatable account should keep debt value within its collateral-factor-adjusted collateral value.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_oracle_fresh", "assumption_standard_erc20"],
+        nextAction: "Generate multi-actor collateral, borrow, repay, and price-change invariants."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("liquidations")) {
+    return [
+      {
+        ...base,
+        id: "property_lending_liquidation_bounds",
+        text: "A liquidation should only affect an unhealthy borrower, should not repay more than documented close-factor bounds, and should not seize collateral beyond debt value plus the allowed incentive.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_oracle_fresh", "assumption_liquidation_execution"],
+        nextAction: "Generate healthy/unhealthy borrower and liquidation-bound scenarios."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("bad debt")) {
+    return [
+      {
+        ...base,
+        id: "property_lending_debt_conservation",
+        text: "Across borrow, repay, interest accrual, liquidation, and write-off flows, aggregate debt should equal accounted borrower liabilities plus explicitly recognized bad debt within rounding bounds.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_bad_debt_policy", "assumption_oracle_fresh"],
+        nextAction: "Generate aggregate debt, reserve, repayment, and bad-debt accounting invariants."
       }
     ];
   }

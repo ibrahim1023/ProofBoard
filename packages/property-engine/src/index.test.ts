@@ -182,4 +182,44 @@ describe("property engine", () => {
     );
     expect(assumptionIds).toEqual(expect.arrayContaining(["assumption_unstaking_liquidity", "assumption_rewards_funded"]));
   });
+
+  it("generates lending collateral, liquidation, and bad-debt coverage", () => {
+    const lendingMap = analyzeSoliditySource({
+      id: "source_lending",
+      path: "src/LendingMarket.sol",
+      language: "solidity",
+      content: `contract LendingMarket {
+        IERC20 public collateralToken;
+        IERC20 public debtToken;
+        function supplyCollateral(uint256 assets) external {}
+        function borrow(uint256 assets) external {}
+        function repay(uint256 assets) external {}
+        function liquidate(address borrower, uint256 assets) external {}
+      }`
+    });
+    const claims = suggestClaimsFromProtocolMap(lendingMap);
+    const properties = generatePropertiesFromClaims(
+      claims.map((claim) => ({ ...claim, status: "Human-approved" as const })),
+      lendingMap
+    );
+    const assumptionIds = suggestTokenAssumptions(lendingMap).map((assumption) => assumption.id);
+
+    expect(claims.map((claim) => claim.id)).toEqual(
+      expect.arrayContaining([
+        "claim_lending_collateralization",
+        "claim_lending_liquidation_bounds",
+        "claim_lending_debt_conservation"
+      ])
+    );
+    expect(properties.map((property) => property.id)).toEqual(
+      expect.arrayContaining([
+        "property_lending_collateralization",
+        "property_lending_liquidation_bounds",
+        "property_lending_debt_conservation"
+      ])
+    );
+    expect(assumptionIds).toEqual(
+      expect.arrayContaining(["assumption_oracle_fresh", "assumption_liquidation_execution", "assumption_bad_debt_policy"])
+    );
+  });
 });
