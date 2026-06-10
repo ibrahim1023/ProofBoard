@@ -26,6 +26,7 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
       "Wire the vault constructor and asset deployment in setUp before treating any result as evidence.",
       "Review verification/smtchecker.json before running solc --standard-json; compiler warnings and unproved targets are evidence, not proofs.",
       "Complete the boolean expressions in verification/scribble/ANNOTATIONS.md and review the instrumented Solidity before running Scribble.",
+      "Complete and activate the reviewed rules in verification/certora/Proofboard.spec before running the generated Certora configuration.",
       "Run the suggested forge test command locally and paste the raw output into ProofBoard Results."
     ],
     files: [
@@ -73,6 +74,16 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
         path: "verification/scribble/ANNOTATIONS.md",
         propertyIds,
         content: scribbleAnnotations(contractName, sourcePath, properties)
+      },
+      {
+        path: "verification/certora/Proofboard.conf",
+        propertyIds,
+        content: certoraConfiguration(contractName, sourcePath)
+      },
+      {
+        path: "verification/certora/Proofboard.spec",
+        propertyIds,
+        content: certoraSpecification(contractName, sourcePath, properties)
       }
     ]
   };
@@ -400,6 +411,60 @@ function singleLine(value: string) {
 }
 
 function escapeScribbleMessage(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function certoraConfiguration(contractName: string, sourcePath: string) {
+  return `${JSON.stringify(
+    {
+      files: [sourcePath],
+      verify: `${contractName}:verification/certora/Proofboard.spec`,
+      msg: `ProofBoard scaffold for ${contractName}`
+    },
+    null,
+    2
+  )}\n`;
+}
+
+function certoraSpecification(contractName: string, sourcePath: string, properties: Property[]) {
+  const templates = properties.map(
+    (property) => `/*
+ProofBoard property: ${safeComment(property.id)}
+Intent: ${safeComment(singleLine(property.text))}
+Risk: ${property.risk}
+
+Review the target methods and replace <BOOLEAN_EXPRESSION> before removing this block comment.
+
+rule pb_${verificationIdentifier(property)} {
+    env e;
+    assert <BOOLEAN_EXPRESSION>, "ProofBoard ${escapeCvlMessage(property.id)}";
+}
+*/
+`
+  );
+
+  return `/*
+ProofBoard Certora CVL worksheet
+Target contract: ${safeComment(contractName)}
+Target source: ${safeComment(sourcePath)}
+
+This is an inactive specification scaffold, not verification evidence. It intentionally contains no active rules because ProofBoard cannot safely translate natural-language intent into contract-specific CVL expressions.
+*/
+
+${templates.join("\n") || "/* No properties were selected. Add human-approved properties before creating CVL rules. */\n"}
+`;
+}
+
+function verificationIdentifier(property: Property) {
+  const identifier = property.id.replace(/[^a-zA-Z0-9_]/g, "_");
+  return /^[a-zA-Z_]/.test(identifier) ? identifier : `property_${identifier}`;
+}
+
+function safeComment(value: string) {
+  return value.replace(/\*\//g, "* /");
+}
+
+function escapeCvlMessage(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 

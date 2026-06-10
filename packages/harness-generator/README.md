@@ -15,5 +15,6 @@ Expected outputs:
 - adversarial token mocks
 - Solidity SMTChecker standard JSON input
 - Scribble annotation review worksheet
+- Certora configuration and inactive CVL rule worksheet
 - setup instructions
 - suggested `forge test` commands

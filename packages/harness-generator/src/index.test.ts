@@ -70,7 +70,9 @@ describe("generateFoundryHarnessBundle", () => {
       "test/invariants/mocks/RebasingToken.sol",
       "test/invariants/README.md",
       "verification/smtchecker.json",
-      "verification/scribble/ANNOTATIONS.md"
+      "verification/scribble/ANNOTATIONS.md",
+      "verification/certora/Proofboard.conf",
+      "verification/certora/Proofboard.spec"
     ]);
   });
 
@@ -108,6 +110,21 @@ describe("generateFoundryHarnessBundle", () => {
     expect(generated?.content).toContain('/// #invariant {:msg "ProofBoard property_share_accounting"} <BOOLEAN_EXPRESSION>;');
     expect(generated?.content).toContain("not verification evidence");
     expect(generated?.content).not.toContain('"} true;');
+  });
+
+  it("generates an inactive Certora configuration and property-linked CVL worksheet", () => {
+    const bundle = generateFoundryHarnessBundle(workspace);
+    const configuration = bundle.files.find((file) => file.path === "verification/certora/Proofboard.conf");
+    const specification = bundle.files.find((file) => file.path === "verification/certora/Proofboard.spec");
+    const config = JSON.parse(configuration?.content ?? "{}");
+
+    expect(config.files).toEqual(["src/TestVault.sol"]);
+    expect(config.verify).toBe("TestVault:verification/certora/Proofboard.spec");
+    expect(specification?.propertyIds).toEqual(["property_share_accounting"]);
+    expect(specification?.content).toContain("rule pb_property_share_accounting");
+    expect(specification?.content).toContain("assert <BOOLEAN_EXPRESSION>");
+    expect(specification?.content).toContain("contains no active rules");
+    expect(specification?.content).not.toContain("assert true");
   });
 
   it.runIf(forgeAvailable())("compiles generated scaffold contracts in a Foundry fixture", () => {
