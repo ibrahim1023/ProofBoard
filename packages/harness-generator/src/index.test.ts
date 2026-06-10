@@ -75,7 +75,9 @@ describe("generateFoundryHarnessBundle", () => {
       "verification/certora/Proofboard.spec",
       "verification/echidna/echidna.yaml",
       "verification/echidna/PROPERTIES.md",
-      "verification/halmos/CHECKS.md"
+      "verification/halmos/CHECKS.md",
+      "verification/medusa/medusa.json",
+      "verification/medusa/PROPERTIES.md"
     ]);
   });
 
@@ -154,6 +156,25 @@ describe("generateFoundryHarnessBundle", () => {
     expect(checks?.content).toContain("assert(<BOOLEAN_EXPRESSION>);");
     expect(checks?.content).toContain("not symbolic-execution evidence");
     expect(checks?.content).not.toContain("assert(true)");
+  });
+
+  it("generates a finite Medusa campaign configuration and inactive property worksheet", () => {
+    const bundle = generateFoundryHarnessBundle(workspace);
+    const configuration = bundle.files.find((file) => file.path === "verification/medusa/medusa.json");
+    const properties = bundle.files.find((file) => file.path === "verification/medusa/PROPERTIES.md");
+    const config = JSON.parse(configuration?.content ?? "{}");
+
+    expect(config.fuzzing.targetContracts).toEqual(["ProofboardMedusaHarness"]);
+    expect(config.fuzzing.testLimit).toBe(100000);
+    expect(config.fuzzing.corpusDirectory).toBe("corpus-medusa");
+    expect(config.fuzzing.testing.propertyTesting).toEqual({
+      enabled: true,
+      testPrefixes: ["property_"]
+    });
+    expect(properties?.propertyIds).toEqual(["property_share_accounting"]);
+    expect(properties?.content).toContain("function property_pb_property_share_accounting()");
+    expect(properties?.content).toContain("not Medusa evidence");
+    expect(properties?.content).not.toContain("return true;");
   });
 
   it.runIf(forgeAvailable())("compiles generated scaffold contracts in a Foundry fixture", () => {

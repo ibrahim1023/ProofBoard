@@ -18,5 +18,6 @@ Expected outputs:
 - Certora configuration and inactive CVL rule worksheet
 - Echidna property-mode configuration and inactive property worksheet
 - Halmos symbolic-test worksheet
+- Medusa campaign configuration and inactive property worksheet
 - setup instructions
 - suggested `forge test` commands

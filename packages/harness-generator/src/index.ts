@@ -29,6 +29,7 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
       "Complete and activate the reviewed rules in verification/certora/Proofboard.spec before running the generated Certora configuration.",
       "Build a target-specific Echidna harness from verification/echidna/PROPERTIES.md before running the generated property-mode configuration.",
       "Complete the symbolic setup, assumptions, target calls, and assertions in verification/halmos/CHECKS.md before running Halmos.",
+      "Create ProofboardMedusaHarness from verification/medusa/PROPERTIES.md and review verification/medusa/medusa.json before fuzzing.",
       "Run the suggested forge test command locally and paste the raw output into ProofBoard Results."
     ],
     files: [
@@ -101,6 +102,16 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
         path: "verification/halmos/CHECKS.md",
         propertyIds,
         content: halmosChecks(contractName, sourcePath, properties)
+      },
+      {
+        path: "verification/medusa/medusa.json",
+        propertyIds,
+        content: medusaConfiguration()
+      },
+      {
+        path: "verification/medusa/PROPERTIES.md",
+        propertyIds,
+        content: medusaProperties(contractName, sourcePath, properties)
       }
     ]
   };
@@ -572,6 +583,99 @@ Before running Halmos:
 ## Symbolic Check Templates
 
 ${templates.join("\n") || "No properties were selected. Add human-approved properties before creating symbolic checks.\n"}
+`;
+}
+
+function medusaConfiguration() {
+  return `${JSON.stringify(
+    {
+      fuzzing: {
+        workers: 4,
+        timeout: 0,
+        testLimit: 100000,
+        shrinkLimit: 5000,
+        callSequenceLength: 100,
+        corpusDirectory: "corpus-medusa",
+        coverageEnabled: true,
+        coverageFormats: ["html", "lcov"],
+        targetContracts: ["ProofboardMedusaHarness"],
+        testing: {
+          stopOnFailedTest: true,
+          stopOnNoTests: true,
+          testAllContracts: false,
+          assertionTesting: {
+            enabled: true
+          },
+          propertyTesting: {
+            enabled: true,
+            testPrefixes: ["property_"]
+          },
+          optimizationTesting: {
+            enabled: false,
+            testPrefixes: ["optimize_"]
+          }
+        }
+      },
+      compilation: {
+        platform: "crytic-compile",
+        platformConfig: {
+          target: ".",
+          args: []
+        }
+      },
+      slither: {
+        useSlither: true,
+        cachePath: "slither_results.json",
+        args: []
+      },
+      logging: {
+        level: "info",
+        logDirectory: "",
+        noColor: false
+      }
+    },
+    null,
+    2
+  )}\n`;
+}
+
+function medusaProperties(contractName: string, sourcePath: string, properties: Property[]) {
+  const templates = properties.map(
+    (property) => `### ${property.id}
+
+Intent: ${singleLine(property.text)}
+
+Risk: ${property.risk}
+
+\`\`\`solidity
+function property_pb_${verificationIdentifier(property)}() public view returns (bool) {
+    return <BOOLEAN_EXPRESSION>;
+}
+\`\`\`
+`
+  );
+
+  return `# ProofBoard Medusa Property Worksheet
+
+Target contract: \`${contractName}\`
+
+Target source: \`${sourcePath}\`
+
+Generated harness name: \`ProofboardMedusaHarness\`
+
+This file is an inactive fuzz-harness worksheet, not Medusa evidence. Create the named Solidity harness, deploy or inherit the reviewed target, expose intended actions, and add completed property functions before using the generated configuration.
+
+Before running Medusa:
+
+1. Replace each \`<BOOLEAN_EXPRESSION>\` with a target-specific expression.
+2. Define constructor arguments, balances, actors, approvals, and privileged roles.
+3. Review the configured target contract, property prefix, sequence length, and finite test limit.
+4. Keep the generated corpus and coverage reports for reproducibility.
+5. Preserve raw failure sequences and shrinking output before recording evidence.
+
+## Property Templates
+
+${templates.join("\n") || "No properties were selected. Add human-approved properties before creating Medusa properties.\n"}
 `;
 }
 
