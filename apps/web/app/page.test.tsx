@@ -27,6 +27,12 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByRole("option", { name: "Bridge" })).toBeInTheDocument();
   });
 
+  it("offers governance and upgradeable systems as a protocol intake type", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("option", { name: "Governance / Upgradeable" })).toBeInTheDocument();
+  });
+
   it("renders the workspace shell with demo ERC4626 data", () => {
     render(<Home />);
 

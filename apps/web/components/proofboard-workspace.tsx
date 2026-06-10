@@ -50,6 +50,7 @@ const protocolLabels: Record<ProtocolType, string> = {
   lending_market: "Lending Market",
   amm_pool: "AMM Pool",
   bridge: "Bridge",
+  governance: "Governance / Upgradeable",
   custom_vault: "Custom Vault"
 };
 
@@ -525,6 +526,7 @@ export function ProofboardWorkspace() {
                     <option value="lending_market">Lending Market</option>
                     <option value="amm_pool">AMM Pool</option>
                     <option value="bridge">Bridge</option>
+                    <option value="governance">Governance / Upgradeable</option>
                     <option value="custom_vault">Custom Vault</option>
                   </select>
                 </label>

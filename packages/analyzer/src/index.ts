@@ -457,6 +457,21 @@ function canonicalAssetFlowName(name: string): AssetFlow["kind"] | undefined {
   if (normalized.includes("finalizemessage") || normalized.includes("finalizewithdrawal")) {
     return "finalize_message";
   }
+  if (normalized === "propose" || normalized.startsWith("propose")) {
+    return "propose";
+  }
+  if (normalized === "vote" || normalized.startsWith("castvote")) {
+    return "vote";
+  }
+  if (normalized === "queue" || normalized.startsWith("queue")) {
+    return "queue";
+  }
+  if (normalized === "execute" || normalized.startsWith("execute")) {
+    return "execute";
+  }
+  if (normalized.includes("upgradeto") || normalized.includes("upgradeimplementation")) {
+    return "upgrade";
+  }
   return undefined;
 }
 

@@ -289,4 +289,50 @@ describe("property engine", () => {
       ])
     );
   });
+
+  it("generates governance lifecycle, upgrade, storage-layout, and emergency coverage", () => {
+    const governanceMap = analyzeSoliditySource({
+      id: "source_governance",
+      path: "src/GovernorProxy.sol",
+      language: "solidity",
+      content: `contract GovernorProxy {
+        address public implementation;
+        uint256 public timelockDelay;
+        function propose(bytes calldata actions) external {}
+        function castVote(uint256 proposalId, uint8 support) external {}
+        function queue(uint256 proposalId) external {}
+        function execute(uint256 proposalId) external {}
+        function upgradeTo(address nextImplementation) external onlyAdmin {}
+        function emergencyPause() external onlyAdmin {}
+      }`
+    });
+    const claims = suggestClaimsFromProtocolMap(governanceMap);
+    const properties = generatePropertiesFromClaims(
+      claims.map((claim) => ({ ...claim, status: "Human-approved" as const })),
+      governanceMap
+    );
+    const assumptionIds = suggestTokenAssumptions(governanceMap).map((assumption) => assumption.id);
+
+    expect(claims.map((claim) => claim.id)).toEqual(
+      expect.arrayContaining([
+        "claim_governance_lifecycle",
+        "claim_upgrade_authorization",
+        "claim_governance_emergency_controls"
+      ])
+    );
+    expect(properties.map((property) => property.id)).toEqual(
+      expect.arrayContaining([
+        "property_governance_lifecycle",
+        "property_upgrade_authorization",
+        "property_governance_emergency_scope"
+      ])
+    );
+    expect(assumptionIds).toEqual(
+      expect.arrayContaining([
+        "assumption_governance_timelock",
+        "assumption_upgrade_storage_layout",
+        "assumption_governance_emergency_scope"
+      ])
+    );
+  });
 });

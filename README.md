@@ -28,6 +28,7 @@ In scope:
 - Lending secure-core coverage for collateralization, liquidation bounds, oracle freshness, aggregate debt accounting, and explicit bad-debt policy.
 - AMM secure-core coverage for reserve synchronization, pricing-invariant review, LP share accounting, swap fees, and multi-provider liquidity flows.
 - Bridge secure-core coverage for message commitments, replay protection, relayer trust, domain separation, and finality or challenge conditions.
+- Governance and upgrade coverage for proposal lifecycle, quorum and timelock enforcement, upgrade authorization, storage-layout risk, and bounded emergency controls.
 - Skeptic checks that flag weak, vague, vacuous, under-exercised, or assumption-heavy properties before teams over-trust generated tests.
 - Assumption Debt Board with status, severity, linked functions, linked properties, owner, rationale, revisit date, mitigation, accepted-risk justification, accepted-risk visibility, and out-of-scope visibility.
 - Verification Ledger that separates claim status, property status, verification level, evidence, assumptions, risk, next action, and verification-readiness signals.
@@ -94,7 +95,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 115 passing | `npm test` |
+| Unit and eval assertions | 119 passing | `npm test` |
 | Browser E2E checks | 12 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |

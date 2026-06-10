@@ -129,6 +129,10 @@ describe("shared schema validation", () => {
     expect(validateWorkspace({ ...validWorkspace, protocolType: "bridge" })).toEqual([]);
   });
 
+  it("accepts governance workspaces", () => {
+    expect(validateWorkspace({ ...validWorkspace, protocolType: "governance" })).toEqual([]);
+  });
+
   it("rejects invalid verification levels", () => {
     const issues = validateProperty({
       ...validWorkspace.properties[0],

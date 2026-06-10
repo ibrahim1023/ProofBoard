@@ -290,4 +290,28 @@ describe("analyzeSoliditySource", () => {
     expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["send_message", "receive_message", "finalize_message"]);
     expect(map.criticalState.map((state) => state.name)).toEqual(["relayer", "processedMessages", "finalityDelay"]);
   });
+
+  it("maps governance lifecycle and upgrade flows", () => {
+    const map = analyzeSoliditySource({
+      ...source,
+      path: "src/GovernorProxy.sol",
+      content: `contract GovernorProxy {
+        address public implementation;
+        uint256 public votingDelay;
+        uint256 public votingPeriod;
+        uint256 public timelockDelay;
+
+        function propose(bytes calldata actions) external {}
+        function castVote(uint256 proposalId, uint8 support) external {}
+        function queue(uint256 proposalId) external {}
+        function execute(uint256 proposalId) external {}
+        function upgradeTo(address nextImplementation) external onlyAdmin {}
+        function emergencyPause() external onlyAdmin {}
+      }`
+    });
+
+    expect(map.userFlows.map((fn) => fn.name)).toEqual(["propose", "castVote", "queue", "execute"]);
+    expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["propose", "vote", "queue", "execute", "upgrade", "privileged"]);
+    expect(map.privilegedFunctions.map((fn) => fn.name)).toEqual(["upgradeTo", "emergencyPause"]);
+  });
 });

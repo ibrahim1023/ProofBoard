@@ -226,6 +226,39 @@ const claimTemplates: ClaimTemplate[] = [
     relatedFunctionNames: ["finalizeMessage", "finalizeWithdrawal"],
     source: ["finalization entrypoint", "finality or challenge state"],
     when: (map) => hasAnyFunction(map.userFlows, ["finalize"])
+  },
+  {
+    id: "claim_governance_lifecycle",
+    title: "Governance execution follows approved lifecycle",
+    text: "Proposal execution should require the documented proposal threshold, voting period, quorum, successful vote outcome, queueing, and timelock delay.",
+    confidence: 0.86,
+    severity: "critical",
+    relatedFunctionNames: ["propose", "castVote", "queue", "execute"],
+    source: ["governance lifecycle entrypoints", "voting and timelock state"],
+    when: (map) =>
+      hasAnyFunction(map.userFlows, ["propose"]) &&
+      hasAnyFunction(map.userFlows, ["vote"]) &&
+      hasAnyFunction(map.userFlows, ["execute"])
+  },
+  {
+    id: "claim_upgrade_authorization",
+    title: "Upgrades require authorized execution",
+    text: "Implementation upgrades should only occur through the documented governance or upgrade authority after required delay and validation checks.",
+    confidence: 0.88,
+    severity: "critical",
+    relatedFunctionNames: ["upgradeTo", "upgradeToAndCall", "upgradeImplementation"],
+    source: ["upgrade entrypoint", "role and governance map"],
+    when: (map) => hasAnyFunction(map.privilegedFunctions, ["upgrade"])
+  },
+  {
+    id: "claim_governance_emergency_controls",
+    title: "Emergency controls stay bounded",
+    text: "Emergency pause, cancel, guardian, or veto powers should remain limited to documented actions, durations, and recovery paths.",
+    confidence: 0.76,
+    severity: "high",
+    relatedFunctionNames: ["emergencyPause", "pause", "cancel", "veto"],
+    source: ["emergency privileged functions", "role map"],
+    when: (map) => hasAnyFunction(map.privilegedFunctions, ["emergency", "pause", "cancel", "veto"])
   }
 ];
 
@@ -524,6 +557,38 @@ export function suggestTokenAssumptions(map: ProtocolMap): Assumption[] {
     );
   }
 
+  if (hasAnyFunction(map.userFlows, ["propose", "vote", "queue", "execute"]) || hasAnyFunction(map.privilegedFunctions, ["upgrade"])) {
+    assumptions.push(
+      {
+        id: "assumption_governance_timelock",
+        text: "Governance and upgrade execution cannot bypass the documented voting and timelock delays.",
+        whyItMatters: "Bypassed delays remove the review and exit window intended to constrain governance actions.",
+        status: "Needs invariant",
+        severity: "critical",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["propose", "castVote", "queue", "execute", "upgradeTo"])
+      },
+      {
+        id: "assumption_upgrade_storage_layout",
+        text: "New implementations preserve storage layout and initialization invariants.",
+        whyItMatters: "Storage collisions or repeated initialization can corrupt balances, roles, accounting, or upgrade authority.",
+        status: "Needs formal proof",
+        severity: "critical",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["upgradeTo", "upgradeToAndCall", "upgradeImplementation"])
+      },
+      {
+        id: "assumption_governance_emergency_scope",
+        text: "Emergency guardians can only perform documented bounded actions and cannot permanently seize governance authority.",
+        whyItMatters: "Unbounded emergency powers can bypass voting, timelocks, or normal recovery procedures.",
+        status: "Unresolved",
+        severity: "high",
+        relatedProperties: [],
+        relatedFunctions: resolveFunctionNames(map, ["emergencyPause", "pause", "cancel", "veto"])
+      }
+    );
+  }
+
   return assumptions;
 }
 
@@ -810,6 +875,48 @@ function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
         risk: claim.severity,
         assumptions: ["assumption_bridge_finality", "assumption_bridge_relayer_trust"],
         nextAction: "Generate pre-finality, post-finality, reorg, and challenge-window scenarios."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("approved lifecycle")) {
+    return [
+      {
+        ...base,
+        id: "property_governance_lifecycle",
+        text: "A proposal should execute only after satisfying proposal eligibility, voting delay, voting period, quorum, successful outcome, queueing, and timelock requirements, and should execute at most once.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_governance_timelock"],
+        nextAction: "Generate proposal-state, quorum, vote, queue, delay, cancellation, and duplicate-execution scenarios."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("upgrades require")) {
+    return [
+      {
+        ...base,
+        id: "property_upgrade_authorization",
+        text: "Every implementation change should originate from the documented upgrade authority or executed governance proposal, preserve initialization guards, and reject unauthorized direct callers.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_governance_timelock", "assumption_upgrade_storage_layout"],
+        nextAction: "Generate authorized, unauthorized, initialization, rollback, and storage-layout upgrade scenarios."
+      }
+    ];
+  }
+
+  if (normalizedTitle.includes("emergency controls")) {
+    return [
+      {
+        ...base,
+        id: "property_governance_emergency_scope",
+        text: "Emergency pause, cancellation, guardian, and veto actions should remain limited to documented targets and should preserve an authorized recovery or unpause path.",
+        status: "Draft",
+        risk: claim.severity,
+        assumptions: ["assumption_governance_emergency_scope"],
+        nextAction: "Generate guardian authorization, bounded-action, cancellation, pause, and recovery scenarios."
       }
     ];
   }
