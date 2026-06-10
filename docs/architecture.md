@@ -6,11 +6,11 @@ ProofBoard is a web-first protocol assurance workspace. The system should make p
 
 1. User creates a workspace.
 2. User uploads Solidity files or a repository zip.
-3. User selects a protocol type, initially ERC4626 vault.
+3. User selects ERC4626 vault, staking vault, lending market, AMM pool, or custom vault intake.
 4. The analyzer builds a protocol map.
 5. The intent workflow proposes claims from code, docs, tests, and user notes.
 6. The user approves, edits, or rejects claims.
-7. The property engine suggests ERC4626-specific invariants and assumptions.
+7. The property engine suggests protocol-specific secure-core properties and assumptions.
 8. The harness generator emits Foundry invariant test scaffolding.
 9. The runner surfaces local or Docker Foundry command plans.
 10. The local server bridge runs structured runner requests and captures stdout/stderr into the Results board.
@@ -38,7 +38,7 @@ Backend and analysis:
 ## Package Boundaries
 
 - `packages/analyzer/`: extracts contracts, functions, inheritance, state variables, roles, external calls, and asset flows.
-- `packages/property-engine/`: owns ERC4626 claim, property, invariant, assumption, and skeptic templates.
+- `packages/property-engine/`: owns ERC4626, staking, lending, and AMM claim, property, assumption, and skeptic templates.
 - `packages/harness-generator/`: creates Foundry invariant tests, handlers, actor models, and mocks.
 - `packages/verification-runner/`: plans local and Docker Foundry execution and captures raw output in Node workflows.
 - `packages/result-parser/`: parses Foundry output and maps results to properties and evidence.
@@ -48,7 +48,7 @@ Backend and analysis:
 
 ProofBoard supports:
 
-- no LLM mode using ERC4626 templates
+- no LLM mode using deterministic protocol templates
 - local LLM mode through the server-side `/api/generate-claims` Ollama-compatible adapter
 - an optional hosted LLM validation boundary without a hosted transport implementation
 
