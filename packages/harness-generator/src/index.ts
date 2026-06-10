@@ -28,6 +28,7 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
       "Complete the boolean expressions in verification/scribble/ANNOTATIONS.md and review the instrumented Solidity before running Scribble.",
       "Complete and activate the reviewed rules in verification/certora/Proofboard.spec before running the generated Certora configuration.",
       "Build a target-specific Echidna harness from verification/echidna/PROPERTIES.md before running the generated property-mode configuration.",
+      "Complete the symbolic setup, assumptions, target calls, and assertions in verification/halmos/CHECKS.md before running Halmos.",
       "Run the suggested forge test command locally and paste the raw output into ProofBoard Results."
     ],
     files: [
@@ -95,6 +96,11 @@ export function generateFoundryHarnessBundle(workspace: Workspace, selectedPrope
         path: "verification/echidna/PROPERTIES.md",
         propertyIds,
         content: echidnaProperties(contractName, sourcePath, properties)
+      },
+      {
+        path: "verification/halmos/CHECKS.md",
+        propertyIds,
+        content: halmosChecks(contractName, sourcePath, properties)
       }
     ]
   };
@@ -525,6 +531,47 @@ Before running Echidna:
 ## Property Templates
 
 ${templates.join("\n") || "No properties were selected. Add human-approved properties before creating Echidna properties.\n"}
+`;
+}
+
+function halmosChecks(contractName: string, sourcePath: string, properties: Property[]) {
+  const templates = properties.map(
+    (property) => `### ${property.id}
+
+Intent: ${singleLine(property.text)}
+
+Risk: ${property.risk}
+
+\`\`\`solidity
+function check_pb_${verificationIdentifier(property)}(<SYMBOLIC_PARAMETERS>) public {
+    // vm.assume(<VALID_INPUT_CONDITIONS>);
+    // <CALL_TARGET_CONTRACT>;
+    assert(<BOOLEAN_EXPRESSION>);
+}
+\`\`\`
+`
+  );
+
+  return `# ProofBoard Halmos Symbolic Test Worksheet
+
+Target contract: \`${contractName}\`
+
+Target source: \`${sourcePath}\`
+
+This file is an inactive symbolic-test worksheet, not symbolic-execution evidence. Halmos uses Foundry-style tests whose names begin with \`check_\`, treats parameters as symbolic inputs, and reports assertion violations as counterexamples.
+
+Before running Halmos:
+
+1. Create a Foundry test contract and deploy the reviewed target in \`setUp()\`.
+2. Replace \`<SYMBOLIC_PARAMETERS>\` with fixed-size symbolic inputs.
+3. Use \`vm.assume\` only for valid preconditions; do not exclude relevant failure states.
+4. Replace the target-call and boolean placeholders with contract-specific logic.
+5. Review ignored revert paths and arithmetic behavior before interpreting results.
+6. Preserve raw counterexamples and tool output before recording evidence.
+
+## Symbolic Check Templates
+
+${templates.join("\n") || "No properties were selected. Add human-approved properties before creating symbolic checks.\n"}
 `;
 }
 

@@ -83,14 +83,14 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 | Verification levels | 10 modeled, with 8 MVP ledger levels surfaced |
 | Assumption statuses | 8 |
 | Skeptic statuses | 6 |
-| Generated verification artifacts | 13 Foundry, SMTChecker, Scribble, Certora, and Echidna files |
+| Generated verification artifacts | 14 Foundry, SMTChecker, Scribble, Certora, Echidna, and Halmos files |
 | Differentiation reports | 3: verification readiness, harness quality, invariant vacuity |
 
 ### Quality Metrics
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 99 passing | `npm test` |
+| Unit and eval assertions | 100 passing | `npm test` |
 | Browser E2E checks | 12 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |
@@ -135,9 +135,10 @@ verification/certora/Proofboard.conf
 verification/certora/Proofboard.spec
 verification/echidna/echidna.yaml
 verification/echidna/PROPERTIES.md
+verification/halmos/CHECKS.md
 ```
 
-Generated harnesses are traceable to selected ProofBoard property ids. They are scaffold code, not proof of safety; teams must wire constructors, handlers, actor roles, and protocol-specific assertions before treating Foundry output as verification evidence. The bundle also includes a Solidity SMTChecker standard JSON input configured to report unproved targets, a Scribble worksheet with inactive property-linked annotation templates, a target-aware Certora configuration with inactive CVL rule templates, and an Echidna property-mode configuration with an inactive harness worksheet. The web app reports harness quality across expected vault flows, adversarial-token coverage, donation sensitivity, pause behavior, and privileged actions.
+Generated harnesses are traceable to selected ProofBoard property ids. They are scaffold code, not proof of safety; teams must wire constructors, handlers, actor roles, and protocol-specific assertions before treating Foundry output as verification evidence. The bundle also includes a Solidity SMTChecker standard JSON input configured to report unproved targets, a Scribble worksheet with inactive property-linked annotation templates, a target-aware Certora configuration with inactive CVL rule templates, an Echidna property-mode configuration with an inactive harness worksheet, and a Halmos symbolic-test worksheet. The web app reports harness quality across expected vault flows, adversarial-token coverage, donation sensitivity, pause behavior, and privileged actions.
 
 ### Results And Audit Exports
 

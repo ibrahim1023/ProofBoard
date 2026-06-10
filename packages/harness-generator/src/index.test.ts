@@ -74,7 +74,8 @@ describe("generateFoundryHarnessBundle", () => {
       "verification/certora/Proofboard.conf",
       "verification/certora/Proofboard.spec",
       "verification/echidna/echidna.yaml",
-      "verification/echidna/PROPERTIES.md"
+      "verification/echidna/PROPERTIES.md",
+      "verification/halmos/CHECKS.md"
     ]);
   });
 
@@ -141,6 +142,18 @@ describe("generateFoundryHarnessBundle", () => {
     expect(properties?.content).toContain("return <BOOLEAN_EXPRESSION>;");
     expect(properties?.content).toContain("not fuzzing evidence");
     expect(properties?.content).not.toContain("return true;");
+  });
+
+  it("generates an inactive Halmos symbolic-test worksheet with property traceability", () => {
+    const bundle = generateFoundryHarnessBundle(workspace);
+    const checks = bundle.files.find((file) => file.path === "verification/halmos/CHECKS.md");
+
+    expect(checks?.propertyIds).toEqual(["property_share_accounting"]);
+    expect(checks?.content).toContain("function check_pb_property_share_accounting(<SYMBOLIC_PARAMETERS>)");
+    expect(checks?.content).toContain("vm.assume(<VALID_INPUT_CONDITIONS>)");
+    expect(checks?.content).toContain("assert(<BOOLEAN_EXPRESSION>);");
+    expect(checks?.content).toContain("not symbolic-execution evidence");
+    expect(checks?.content).not.toContain("assert(true)");
   });
 
   it.runIf(forgeAvailable())("compiles generated scaffold contracts in a Foundry fixture", () => {

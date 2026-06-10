@@ -17,5 +17,6 @@ Expected outputs:
 - Scribble annotation review worksheet
 - Certora configuration and inactive CVL rule worksheet
 - Echidna property-mode configuration and inactive property worksheet
+- Halmos symbolic-test worksheet
 - setup instructions
 - suggested `forge test` commands
