@@ -4,7 +4,7 @@ This note captures work that is intentionally outside the current ProofBoard MVP
 
 ## Current Boundary
 
-ProofBoard's deepest workflow remains ERC4626 and vault-like secure cores. Staking, lending, and AMM intake now add protocol-aware flow mapping, claim templates, property generation, and assumption debt. Generated harness execution and result interpretation remain Foundry-oriented and require target-specific wiring for every protocol family.
+ProofBoard's deepest workflow remains ERC4626 and vault-like secure cores. Staking, lending, AMM, bridge, and governance intake now add protocol-aware flow mapping, claim templates, property generation, and assumption debt. Repository intake supports bounded public GitHub imports and local source selection, while collaboration supports review history and distinct-reviewer approval quorum. Generated harness execution and result interpretation remain Foundry-oriented and require target-specific wiring for every protocol family.
 
 The MVP does not claim that a protocol is safe or vulnerability-free. It tracks evidence and unresolved assumptions.
 
@@ -31,9 +31,8 @@ These are the most direct follow-ons because they extend workflows already descr
 
 These require product and threat-model discussion before implementation because they change ProofBoard's supported assurance surface:
 
-- Bridge and cross-chain secure cores with message validity, replay protection, relayer trust, and finality assumptions.
-- Upgrade and governance assurance beyond role detection, including timelocks, upgrade authorization, storage-layout risk, and emergency controls.
-- Repository import and collaboration workflows, including GitHub intake, review history, and multi-user approval records.
+- Authenticated private-repository and GitHub App workflows beyond bounded public-repository import.
+- Persistent multi-user storage, identity-provider integration, notifications, and concurrent editing.
 
 ## Still Non-Goals Unless Positioning Changes
 
@@ -47,4 +46,4 @@ For the next scope discussion, decide in this order:
 
 1. Whether to deepen the current ERC4626 path with E2E and real Foundry execution first.
 2. Whether the first verification integration after Foundry should be symbolic, invariant-fuzzing, or proof-artifact export.
-3. Whether the next protocol expansion should target bridges, governance and upgrades, or deeper executable harnesses for staking, lending, and AMMs.
+3. Whether the next protocol expansion should deepen executable harnesses across the supported secure cores or move into a new runtime such as Solana.

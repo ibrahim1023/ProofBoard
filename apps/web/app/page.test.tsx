@@ -41,7 +41,8 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByLabelText("Evidence boundary")).toBeInTheDocument();
     expect(screen.getByText("Inferred")).toBeInTheDocument();
     expect(screen.getByText("Failed evidence")).toBeInTheDocument();
-    expect(screen.getByText("Repo zip upload placeholder")).toBeInTheDocument();
+    expect(screen.getByText("Import local repository files")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import public GitHub repository" })).toBeInTheDocument();
     expect(screen.getByLabelText("Public demo guide")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start completed demo" })).toBeInTheDocument();
     expect(screen.getByText("Donation or inflation concern is represented")).toBeInTheDocument();
@@ -97,6 +98,73 @@ describe("ProofBoard workspace", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Add property comment" })[0]);
 
     expect(screen.getByText(/commented by Alice Reviewer: Needs multi-actor withdraw coverage/)).toBeInTheDocument();
+  });
+
+  it("requires distinct reviewer quorum before approving claim intent", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "New blank workspace" }));
+    fireEvent.change(screen.getByLabelText("Solidity source"), {
+      target: {
+        value: `contract QuorumVault is ERC4626 {
+          function deposit(uint256 assets, address receiver) external {}
+          function withdraw(uint256 assets, address receiver, address owner) external {}
+        }`
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Intent Board" }));
+    fireEvent.change(screen.getByLabelText("Required approvals"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Reviewer"), { target: { value: "Alice" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Approve" })[0]!);
+
+    expect(screen.getByText(/approved by Alice: Approval 1\/2 recorded/)).toBeInTheDocument();
+    expect(screen.getAllByText("AI-inferred").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText("Reviewer"), { target: { value: "Bob" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Approve" })[0]!);
+
+    expect(screen.getByText(/approved by Bob: Approval 2\/2 recorded/)).toBeInTheDocument();
+    expect(screen.getAllByText("Human-approved").length).toBeGreaterThan(0);
+  });
+
+  it("imports a public GitHub repository snapshot into workspace sources", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ok: true,
+            repository: {
+              provider: "github",
+              repositoryUrl: "https://github.com/example/protocol",
+              ref: "main",
+              importedAt: "2026-06-10T00:00:00Z",
+              files: ["src/Imported.sol"]
+            },
+            sources: [
+              {
+                id: "source_imported",
+                path: "src/Imported.sol",
+                language: "solidity",
+                content: "contract Imported { function stake(uint256 assets) external {} }"
+              }
+            ]
+          })
+        )
+      )
+    );
+    render(<Home />);
+
+    fireEvent.change(screen.getByLabelText("GitHub repository URL"), {
+      target: { value: "https://github.com/example/protocol" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Import public GitHub repository" }));
+
+    expect(await screen.findByText("Imported 1 files from github.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Solidity source")).toHaveValue(
+      "contract Imported { function stake(uint256 assets) external {} }"
+    );
+    expect(screen.getByText("github: 1 files at main")).toBeInTheDocument();
   });
 
   it("validates local LLM claim payloads before review", () => {

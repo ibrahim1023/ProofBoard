@@ -54,6 +54,26 @@ export function analyzeSoliditySource(source: SourceFile): ProtocolMap {
   };
 }
 
+export function analyzeSoliditySources(sources: SourceFile[]): ProtocolMap {
+  const soliditySources = sources.filter((source) => source.language === "solidity");
+  if (soliditySources.length === 0) {
+    return emptyMap(["No Solidity sources were supplied for repository analysis."]);
+  }
+
+  const maps = soliditySources.map(analyzeSoliditySource);
+  return {
+    contracts: maps.flatMap((map) => map.contracts),
+    roles: maps.flatMap((map) => map.roles),
+    criticalState: maps.flatMap((map) => map.criticalState),
+    assetFlows: maps.flatMap((map) => map.assetFlows),
+    externalCalls: maps.flatMap((map) => map.externalCalls),
+    privilegedFunctions: maps.flatMap((map) => map.privilegedFunctions),
+    userFlows: maps.flatMap((map) => map.userFlows),
+    tokenDependencies: uniqueById(maps.flatMap((map) => map.tokenDependencies)),
+    parserWarnings: unique(maps.flatMap((map) => map.parserWarnings))
+  };
+}
+
 function emptyMap(parserWarnings: string[]): ProtocolMap {
   return {
     contracts: [],
@@ -477,4 +497,12 @@ function canonicalAssetFlowName(name: string): AssetFlow["kind"] | undefined {
 
 function makeId(prefix: string, value: string) {
   return `${prefix}_${value.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase()}`;
+}
+
+function unique(values: string[]) {
+  return [...new Set(values)];
+}
+
+function uniqueById<T extends { id: string }>(values: T[]) {
+  return [...new Map(values.map((value) => [value.id, value])).values()];
 }

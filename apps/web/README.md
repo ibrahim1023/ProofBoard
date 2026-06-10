@@ -27,6 +27,8 @@ Current implementation:
 
 - project intake form
 - protocol type selector
+- local multi-file and bounded public GitHub repository intake
+- configurable distinct-reviewer approval quorum with preserved review history
 - Solidity paste area
 - disabled repo zip upload placeholder
 - seeded ERC4626 demo workspace

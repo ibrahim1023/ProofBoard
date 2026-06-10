@@ -58,4 +58,25 @@ describe("audit packet export", () => {
     expect(fuzzyEvidence?.content).toContain("Weak or missing evidence records");
     expect(auditorQuestions?.content).toContain("Suggested Auditor Questions");
   });
+
+  it("preserves repository origin and approval policy in the ledger export", () => {
+    const workspace = {
+      ...demoWorkspace,
+      repository: {
+        provider: "github" as const,
+        repositoryUrl: "https://github.com/example/protocol",
+        ref: "main",
+        importedAt: "2026-06-10T00:00:00Z",
+        files: ["src/Protocol.sol"]
+      },
+      approvalPolicy: { requiredApprovals: 2 }
+    };
+    const ledger = generateAuditExportFiles(workspace, generateFoundryHarnessBundle(workspace)).find(
+      (file) => file.name === "proofboard-ledger.json"
+    );
+    const payload = JSON.parse(ledger?.content ?? "{}");
+
+    expect(payload.repository).toMatchObject({ provider: "github", ref: "main" });
+    expect(payload.approvalPolicy).toEqual({ requiredApprovals: 2 });
+  });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { analyzeSoliditySource } from "@proofboard/analyzer";
+import { analyzeSoliditySource, analyzeSoliditySources } from "@proofboard/analyzer";
 import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
 import { applyFoundryOutput, parseFoundryOutput } from "@proofboard/result-parser";
 import { createFoundryRunPlan, type RunnerMode } from "@proofboard/verification-runner";
@@ -27,8 +27,10 @@ import type {
   Claim,
   Property,
   ProtocolType,
+  RepositoryImport,
   ReviewAction,
   ReviewTargetType,
+  SourceFile,
   Workspace
 } from "@proofboard/shared-types";
 
@@ -99,6 +101,10 @@ export function ProofboardWorkspace() {
   const [runnerBusy, setRunnerBusy] = useState(false);
   const runnerAbortController = useRef<AbortController | null>(null);
   const [reviewerIdentity, setReviewerIdentity] = useState("Security lead");
+  const [repositoryUrl, setRepositoryUrl] = useState("");
+  const [repositoryRef, setRepositoryRef] = useState("");
+  const [repositoryNotice, setRepositoryNotice] = useState<string[]>([]);
+  const [repositoryBusy, setRepositoryBusy] = useState(false);
   const [claimCommentDrafts, setClaimCommentDrafts] = useState<Record<string, string>>({});
   const [claimRejectionDrafts, setClaimRejectionDrafts] = useState<Record<string, string>>({});
   const [propertyCommentDrafts, setPropertyCommentDrafts] = useState<Record<string, string>>({});
@@ -175,6 +181,85 @@ export function ProofboardWorkspace() {
       ...current,
       protocolType: value
     }));
+  }
+
+  function updateRequiredApprovals(value: string) {
+    const requiredApprovals = Math.max(1, Number.parseInt(value, 10) || 1);
+    setWorkspace((current) => ({
+      ...current,
+      approvalPolicy: { requiredApprovals },
+      claims: current.claims.map((claim) =>
+        claim.status === "Human-approved" && approvedReviewers(current, claim.id).size < requiredApprovals
+          ? { ...claim, status: "AI-inferred" }
+          : claim
+      )
+    }));
+  }
+
+  function applyRepositorySources(sources: SourceFile[], repository: RepositoryImport) {
+    const protocolMap = analyzeSoliditySources(sources);
+    setWorkspace((current) => ({
+      ...current,
+      sources,
+      repository,
+      protocolMap,
+      claims: suggestClaimsFromProtocolMap(protocolMap),
+      properties: [],
+      assumptions: suggestTokenAssumptions(protocolMap),
+      verificationRuns: [],
+      evidence: [],
+      reviewRecords: []
+    }));
+    setRepositoryNotice([`Imported ${sources.length} files from ${repository.provider}.`]);
+  }
+
+  async function importLocalRepository(files?: FileList | null) {
+    const selected = [...(files ?? [])].filter((file) => /\.(sol|md|txt)$/i.test(file.name));
+    if (selected.length === 0) {
+      setRepositoryNotice(["Select one or more .sol, .md, or .txt files."]);
+      return;
+    }
+
+    const sources = await Promise.all(
+      selected.map(async (file, index): Promise<SourceFile> => ({
+        id: `source_local_${index}_${file.name.replace(/[^A-Za-z0-9]+/g, "_").toLowerCase()}`,
+        path: file.webkitRelativePath || file.name,
+        language: file.name.toLowerCase().endsWith(".sol") ? "solidity" : file.name.toLowerCase().endsWith(".md") ? "markdown" : "text",
+        content: await file.text()
+      }))
+    );
+    applyRepositorySources(sources, {
+      provider: "local",
+      importedAt: new Date().toISOString(),
+      files: sources.map((source) => source.path)
+    });
+  }
+
+  async function importGitHubRepository() {
+    setRepositoryBusy(true);
+    setRepositoryNotice([]);
+    try {
+      const response = await fetch("/api/import-repository", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ repositoryUrl, ref: repositoryRef || undefined })
+      });
+      const result = (await response.json()) as {
+        ok?: boolean;
+        errors?: string[];
+        sources?: SourceFile[];
+        repository?: RepositoryImport;
+      };
+      if (!response.ok || !result.ok || !result.sources || !result.repository) {
+        setRepositoryNotice(result.errors?.length ? result.errors : ["Repository import failed."]);
+        return;
+      }
+      applyRepositorySources(result.sources, result.repository);
+    } catch {
+      setRepositoryNotice(["Could not reach the repository import API."]);
+    } finally {
+      setRepositoryBusy(false);
+    }
   }
 
   function loadBlankWorkspace() {
@@ -257,25 +342,37 @@ export function ProofboardWorkspace() {
   }
 
   function updateClaimStatus(claimId: string, status: Claim["status"]) {
-    const action: ReviewAction = status === "Rejected" ? "rejected" : status === "Human-approved" ? "approved" : "edited";
-    const note =
-      status === "Rejected"
-        ? claimRejectionDrafts[claimId]?.trim() || "Rejected without a recorded rationale."
-        : `${status} by reviewer.`;
+    setWorkspace((current) => {
+      const reviewer = reviewerIdentity.trim() || "Unassigned reviewer";
+      const requiredApprovals = current.approvalPolicy?.requiredApprovals ?? 1;
+      const existingApprovers = approvedReviewers(current, claimId);
+      const approvalCount = status === "Human-approved" ? new Set([...existingApprovers, reviewer.toLowerCase()]).size : 0;
+      const nextStatus =
+        status === "Human-approved" && approvalCount < requiredApprovals
+          ? current.claims.find((claim) => claim.id === claimId)?.status === "Rejected"
+            ? "AI-inferred"
+            : current.claims.find((claim) => claim.id === claimId)?.status ?? "AI-inferred"
+          : status;
+      const action: ReviewAction = status === "Rejected" ? "rejected" : status === "Human-approved" ? "approved" : "edited";
+      const note =
+        status === "Rejected"
+          ? claimRejectionDrafts[claimId]?.trim() || "Rejected without a recorded rationale."
+          : status === "Human-approved"
+            ? `Approval ${approvalCount}/${requiredApprovals} recorded.`
+            : `${status} by reviewer.`;
 
-    setWorkspace((current) =>
-      appendReviewRecord(
+      return appendReviewRecord(
         {
           ...current,
-          claims: current.claims.map((claim) => (claim.id === claimId ? { ...claim, status } : claim))
+          claims: current.claims.map((claim) => (claim.id === claimId ? { ...claim, status: nextStatus } : claim))
         },
         "claim",
         claimId,
         action,
-        reviewerIdentity,
+        reviewer,
         note
-      )
-    );
+      );
+    });
   }
 
   function updateClaimText(claimId: string, text: string) {
@@ -319,7 +416,16 @@ export function ProofboardWorkspace() {
 
   function generateInvariantProperties() {
     setWorkspace((current) => {
-      const generated = generatePropertiesFromClaims(current.claims, current.protocolMap);
+      const claims =
+        current.approvalPolicy === undefined
+          ? current.claims
+          : current.claims.filter(
+              (claim) =>
+                claim.status === "Human-approved" ||
+                (claim.status === "Edited" &&
+                  approvedReviewers(current, claim.id).size >= current.approvalPolicy!.requiredApprovals)
+            );
+      const generated = generatePropertiesFromClaims(claims, current.protocolMap);
       const properties = mergeProperties(current.properties, generated);
       return {
         ...current,
@@ -564,10 +670,48 @@ export function ProofboardWorkspace() {
                   New blank workspace
                 </button>
                 <label className="file-control">
-                  <input type="file" accept=".sol,.zip" disabled />
-                  Repo zip upload placeholder
+                  <input
+                    type="file"
+                    accept=".sol,.md,.txt"
+                    multiple
+                    onChange={(event) => void importLocalRepository(event.target.files)}
+                  />
+                  Import local repository files
                 </label>
               </div>
+              <div className="form-grid">
+                <label>
+                  GitHub repository URL
+                  <input
+                    onChange={(event) => setRepositoryUrl(event.target.value)}
+                    placeholder="https://github.com/owner/repository"
+                    value={repositoryUrl}
+                  />
+                </label>
+                <label>
+                  Git ref
+                  <input onChange={(event) => setRepositoryRef(event.target.value)} placeholder="Default branch" value={repositoryRef} />
+                </label>
+              </div>
+              <div className="action-row">
+                <button className="secondary-action" disabled={repositoryBusy} onClick={importGitHubRepository} type="button">
+                  {repositoryBusy ? "Importing..." : "Import public GitHub repository"}
+                </button>
+                {workspace.repository && (
+                  <span>
+                    {workspace.repository.provider}: {workspace.repository.files.length} files
+                    {workspace.repository.ref ? ` at ${workspace.repository.ref}` : ""}
+                  </span>
+                )}
+              </div>
+              {repositoryNotice.length > 0 && (
+                <div className="compact-card result-notice" role="status">
+                  <strong>Repository import</strong>
+                  {repositoryNotice.map((notice) => (
+                    <span key={notice}>{notice}</span>
+                  ))}
+                </div>
+              )}
               </div>
 
               <PrinciplePanel />
@@ -689,6 +833,15 @@ export function ProofboardWorkspace() {
                 Reviewer
                 <input onChange={(event) => setReviewerIdentity(event.target.value)} value={reviewerIdentity} />
               </label>
+              <label className="compact-label">
+                Required approvals
+                <input
+                  min={1}
+                  onChange={(event) => updateRequiredApprovals(event.target.value)}
+                  type="number"
+                  value={workspace.approvalPolicy?.requiredApprovals ?? 1}
+                />
+              </label>
             </div>
             {claimMode !== "template" && (
               <div className="llm-boundary">
@@ -749,6 +902,8 @@ export function ProofboardWorkspace() {
               ) : (
                 workspace.claims.map((claim) => {
                   const claimReviews = reviewRecordsFor(workspace, "claim", claim.id);
+                  const approvalCount = approvedReviewers(workspace, claim.id).size;
+                  const requiredApprovals = workspace.approvalPolicy?.requiredApprovals ?? 1;
                   return (
                     <article className="claim-card" key={claim.id}>
                       <div className="card-title-row">
@@ -762,6 +917,7 @@ export function ProofboardWorkspace() {
                       />
                       <span>Source: {claim.source.join(", ")}</span>
                       <span>Confidence: {Math.round(claim.confidence * 100)}% / Severity: {claim.severity}</span>
+                      <span>Approvals: {approvalCount} / {requiredApprovals} distinct reviewers</span>
                       <label>
                         Rejection rationale
                         <textarea
@@ -1480,6 +1636,15 @@ function appendReviewRecord(
 
 function reviewRecordsFor(workspace: Workspace, targetType: ReviewTargetType, targetId: string) {
   return (workspace.reviewRecords ?? []).filter((record) => record.targetType === targetType && record.targetId === targetId);
+}
+
+function approvedReviewers(workspace: Workspace, claimId: string) {
+  return new Set(
+    (workspace.reviewRecords ?? [])
+      .filter((record) => record.targetType === "claim" && record.targetId === claimId && record.action === "approved")
+      .map((record) => record.reviewer.trim().toLowerCase())
+      .filter(Boolean)
+  );
 }
 
 function mergeAssumptions(existing: Assumption[], suggested: Assumption[]) {

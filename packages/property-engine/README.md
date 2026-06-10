@@ -18,13 +18,15 @@ Expanded secure-core templates:
 - staking principal, unstaking liquidity, and reward conservation
 - lending collateralization, liquidation bounds, oracle freshness, debt conservation, and bad-debt policy
 - AMM reserve synchronization, LP share accounting, swap invariants, and fee accounting
+- bridge message validity, replay protection, relayer trust, domain separation, and finality
+- governance proposal lifecycle, timelocks, upgrade authorization, storage-layout risk, and emergency controls
 
 Current implementation:
 
-- template-based ERC4626, staking, lending, and AMM claim suggestions from a protocol map
+- template-based ERC4626, staking, lending, AMM, bridge, and governance claim suggestions from a protocol map
 - generated claims remain `AI-inferred`
 - structured local or hosted LLM claim payloads validate before they reach human review
 - insufficient-evidence LLM responses can refuse unsupported claims
 - property generation only uses `Human-approved` or `Edited` claims
 - generated properties start as `Draft` with `human_approved` verification level
-- domain and token assumption templates for ERC20 behavior, staking liquidity, reward funding, lending oracles and liquidations, and AMM reserve and fee policy
+- domain and token assumption templates for ERC20 behavior, staking liquidity, lending oracles, AMM reserves, bridge finality, and governance upgrades

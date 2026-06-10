@@ -23,6 +23,8 @@ In scope:
 - Protocol map generation for contracts, inheritance, public/external functions, state, events, modifiers, roles, privileged flows, external calls, token dependencies, and vault asset flows.
 - Intent review board with template-based claim suggestions, source evidence, confidence metadata, edit/reject/approve workflows, and an explicit human approval gate.
 - Review-accountability primitives for reviewer identity, claim comments, property comments, approval history, edit history, and rejected-claim rationale.
+- Repository intake through local multi-file selection or bounded public GitHub import, with imported source paths and repository metadata preserved in workspace exports.
+- Configurable distinct-reviewer approval quorum that records pending approvals without promoting claim intent before the threshold is met.
 - ERC4626 property engine for share accounting, deposit/mint consistency, withdraw/redeem consistency, total assets versus supply, donation/inflation risk, rounding behavior, access control, pause behavior, fee behavior, and token assumptions.
 - Staking-vault coverage for principal attribution, unstaking liquidity, funded reward emissions, and multi-user reward conservation.
 - Lending secure-core coverage for collateralization, liquidation bounds, oracle freshness, aggregate debt accounting, and explicit bad-debt policy.
@@ -95,7 +97,7 @@ Deferred scope and next expansion candidates are tracked in `docs/deferred-scope
 
 | Metric | Score or count | Measurement |
 |---|---:|---|
-| Unit and eval assertions | 119 passing | `npm test` |
+| Unit and eval assertions | 127 passing | `npm test` |
 | Browser E2E checks | 12 passing | `npm run test:e2e` on desktop and mobile Chrome projects |
 | Deterministic release-blocker eval cases | 8 / 8 passing | `npm run eval` |
 | Deterministic eval fixture accuracy | 100% | 8 passed release-blocker fixture cases / 8 defined cases |

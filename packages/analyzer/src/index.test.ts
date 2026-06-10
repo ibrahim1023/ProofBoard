@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeSoliditySource } from "./index";
+import { analyzeSoliditySource, analyzeSoliditySources } from "./index";
 
 const source = {
   id: "source_example",
@@ -313,5 +313,25 @@ describe("analyzeSoliditySource", () => {
     expect(map.userFlows.map((fn) => fn.name)).toEqual(["propose", "castVote", "queue", "execute"]);
     expect(map.assetFlows.map((flow) => flow.kind)).toEqual(["propose", "vote", "queue", "execute", "upgrade", "privileged"]);
     expect(map.privilegedFunctions.map((fn) => fn.name)).toEqual(["upgradeTo", "emergencyPause"]);
+  });
+
+  it("aggregates multiple Solidity repository sources", () => {
+    const map = analyzeSoliditySources([
+      {
+        ...source,
+        path: "src/Vault.sol",
+        content: "contract Vault is ERC4626 { function deposit(uint256 assets, address receiver) external {} }"
+      },
+      {
+        ...source,
+        id: "source_strategy",
+        path: "src/Strategy.sol",
+        content: "contract Strategy { function harvest() external {} }"
+      }
+    ]);
+
+    expect(map.contracts.map((contract) => contract.name)).toEqual(["Vault", "Strategy"]);
+    expect(map.userFlows.map((fn) => fn.name)).toEqual(["deposit"]);
+    expect(map.tokenDependencies).toHaveLength(1);
   });
 });

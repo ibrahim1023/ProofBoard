@@ -110,6 +110,20 @@ export interface Workspace {
   verificationRuns: VerificationRun[];
   evidence: Evidence[];
   reviewRecords?: ReviewRecord[];
+  repository?: RepositoryImport;
+  approvalPolicy?: ApprovalPolicy;
+}
+
+export interface RepositoryImport {
+  provider: "github" | "local";
+  repositoryUrl?: string;
+  ref?: string;
+  importedAt: string;
+  files: string[];
+}
+
+export interface ApprovalPolicy {
+  requiredApprovals: number;
 }
 
 export interface SourceFile {
@@ -332,6 +346,14 @@ export function validateWorkspace(workspace: Workspace): ValidationIssue[] {
   workspace.verificationRuns.forEach((run, index) => validateVerificationRun(run, `verificationRuns.${index}`, issues));
   workspace.evidence.forEach((evidence, index) => validateEvidence(evidence, `evidence.${index}`, issues));
   workspace.reviewRecords?.forEach((record, index) => validateReviewRecord(record, `reviewRecords.${index}`, issues));
+  if (workspace.repository) {
+    requireEnum(workspace.repository.provider, ["github", "local"] as const, "repository.provider", issues);
+    requireString(workspace.repository.importedAt, "repository.importedAt", issues);
+    requireArray(workspace.repository.files, "repository.files", issues);
+  }
+  if (workspace.approvalPolicy && (!Number.isInteger(workspace.approvalPolicy.requiredApprovals) || workspace.approvalPolicy.requiredApprovals < 1)) {
+    issues.push({ path: "approvalPolicy.requiredApprovals", message: "Required approvals must be a positive integer." });
+  }
   validateWorkspaceLinks(workspace, issues);
 
   return issues;

@@ -5,11 +5,11 @@ ProofBoard is a web-first protocol assurance workspace. The system should make p
 ## Initial Product Flow
 
 1. User creates a workspace.
-2. User uploads Solidity files or a repository zip.
+2. User pastes Solidity, selects local repository source files, or imports a bounded public GitHub repository snapshot.
 3. User selects ERC4626 vault, staking vault, lending market, AMM pool, or custom vault intake.
 4. The analyzer builds a protocol map.
 5. The intent workflow proposes claims from code, docs, tests, and user notes.
-6. The user approves, edits, or rejects claims.
+6. Distinct reviewers approve, edit, reject, or comment on claims under the workspace approval policy.
 7. The property engine suggests protocol-specific secure-core properties and assumptions.
 8. The harness generator emits Foundry invariant test scaffolding.
 9. The runner surfaces local or Docker Foundry command plans.

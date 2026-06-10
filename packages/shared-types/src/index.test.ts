@@ -133,6 +133,26 @@ describe("shared schema validation", () => {
     expect(validateWorkspace({ ...validWorkspace, protocolType: "governance" })).toEqual([]);
   });
 
+  it("validates repository metadata and approval policy", () => {
+    expect(
+      validateWorkspace({
+        ...validWorkspace,
+        repository: {
+          provider: "github",
+          repositoryUrl: "https://github.com/example/protocol",
+          ref: "main",
+          importedAt: "2026-06-10T00:00:00Z",
+          files: ["src/Protocol.sol"]
+        },
+        approvalPolicy: { requiredApprovals: 2 }
+      })
+    ).toEqual([]);
+
+    expect(validateWorkspace({ ...validWorkspace, approvalPolicy: { requiredApprovals: 0 } })[0]?.path).toBe(
+      "approvalPolicy.requiredApprovals"
+    );
+  });
+
   it("rejects invalid verification levels", () => {
     const issues = validateProperty({
       ...validWorkspace.properties[0],
