@@ -4,14 +4,19 @@ import { generateFoundryHarnessBundle } from "@proofboard/harness-generator";
 import {
   applySkepticReview,
   generatePropertiesFromClaims,
+  generateSolanaTokenVaultProperties,
   suggestClaimsFromProtocolMap,
+  suggestSolanaTokenVaultAssumptions,
+  suggestSolanaTokenVaultClaims,
   suggestTokenAssumptions,
   validateLlmClaimEnvelope
 } from "@proofboard/property-engine";
 import { parseFoundryOutput } from "@proofboard/result-parser";
-import { validateWorkspace } from "@proofboard/shared-types";
+import { type Workspace, validateWorkspace } from "@proofboard/shared-types";
 import { buildAuditPacket, generateAuditExportFiles } from "../../apps/web/lib/audit-packet";
 import { demoWorkspace } from "../../apps/web/lib/demo-workspace";
+import expectedSolanaAssurance from "../../examples/solana-token-vault/expected-assurance.json";
+import solanaWorkspaceFixture from "../../examples/solana-token-vault/proofboard-workspace.json";
 import {
   approveClaims,
   assumptionGenerationCases,
@@ -85,6 +90,36 @@ describe("release-blocker ProofBoard evals", () => {
       expect.arrayContaining(["proofboard-report.md", "proofboard-ledger.json", "assumption-debt.md", "audit-prep.md"])
     );
     expect(packet.suggestedAuditFocus.length).toBeGreaterThan(0);
+  });
+
+  it("keeps the bounded Solana token-vault fixture schema and templates aligned", () => {
+    const context = {
+      targetId: "target_solana_token_vault",
+      programName: "token_vault",
+      instructionNames: ["initialize", "deposit", "withdraw", "pause", "unpause"],
+      accountNames: ["vault", "position", "vault_authority", "vault_token_account", "user_token_account", "mint"],
+      hasPauseControl: true,
+      hasUpgradeAuthority: true,
+      pdaNames: ["vault", "position", "vault_authority"],
+      cpiProgramNames: ["token_program", "system_program"]
+    };
+    const claims = suggestSolanaTokenVaultClaims(context);
+    const properties = generateSolanaTokenVaultProperties(
+      claims.map((claim) => ({ ...claim, status: "Human-approved" as const })),
+      context
+    );
+    const assumptions = suggestSolanaTokenVaultAssumptions(context);
+
+    expect(validateWorkspace(solanaWorkspaceFixture as Workspace)).toEqual([]);
+    expect(claims.map((claim) => claim.id)).toEqual(expect.arrayContaining(expectedSolanaAssurance.claimIds));
+    expect(properties.map((property) => property.id)).toEqual(expect.arrayContaining(expectedSolanaAssurance.propertyIds));
+    expect(assumptions.map((assumption) => assumption.id)).toEqual(
+      expect.arrayContaining(expectedSolanaAssurance.assumptionIds)
+    );
+    expect((solanaWorkspaceFixture as Workspace).verificationRuns[0]).toMatchObject({
+      status: "not_run",
+      backend: { id: "backend_litesvm", runtimeFamily: "solana" }
+    });
   });
 
   it("scores model-backed claim reports deterministically", () => {

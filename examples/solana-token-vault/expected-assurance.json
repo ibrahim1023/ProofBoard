@@ -1,0 +1,30 @@
+{
+  "claimIds": [
+    "claim_solana_vault_custody",
+    "claim_solana_authority_constraints",
+    "claim_solana_account_ownership",
+    "claim_solana_pda_integrity",
+    "claim_solana_cpi_boundary",
+    "claim_solana_rounding_bounds",
+    "claim_solana_emergency_controls"
+  ],
+  "propertyIds": [
+    "property_solana_vault_custody",
+    "property_solana_authority_constraints",
+    "property_solana_account_ownership",
+    "property_solana_pda_integrity",
+    "property_solana_cpi_boundary",
+    "property_solana_rounding_bounds",
+    "property_solana_emergency_controls"
+  ],
+  "assumptionIds": [
+    "assumption_solana_account_validation",
+    "assumption_solana_authority_binding",
+    "assumption_solana_pda_derivation",
+    "assumption_solana_token_program",
+    "assumption_solana_rounding",
+    "assumption_solana_account_lifecycle",
+    "assumption_solana_emergency_scope",
+    "assumption_solana_upgrade_authority"
+  ]
+}

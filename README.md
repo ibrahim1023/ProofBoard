@@ -42,6 +42,7 @@ In scope:
 - No-LLM template mode as a first-class path, plus an Ollama-compatible local claim adapter and optional hosted LLM boundary that cannot bypass schema validation or human review.
 - Deterministic release-blocker evals for claim extraction, unsupported structured claims, property coverage, weak invariants, assumption generation, Foundry parser fixtures, audit packet completeness, and demo schema validity.
 - ERC4626 demo assets and a completed demo load path for showing claims, invariants, assumption debt, parsed fuzz output, the final ledger, and export prep.
+- A bounded Solana token-vault review fixture with Anchor-style source, IDL, approved intent, candidate property, assumptions, and a planned but unexecuted LiteSVM run.
 - Guided public-demo workflow with deterministic acceptance checks for weak invariants, unresolved assumptions, donation/inflation concern visibility, parsed Foundry evidence, and separated audit-prep exports.
 - A versioned chain-agnostic assurance model plus EVM deployment inventory for chain IDs, addresses, proxy/admin metadata, oracle feeds, bridge dependencies, and explorer references.
 

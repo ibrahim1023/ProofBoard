@@ -1,0 +1,158 @@
+{
+  "id": "workspace_solana_token_vault_fixture",
+  "name": "Solana Token Vault Review Fixture",
+  "protocolType": "custom_vault",
+  "description": "Bounded, non-executable Solana token-vault assurance fixture.",
+  "sources": [
+    {
+      "id": "source_solana_token_vault",
+      "path": "programs/token-vault/src/lib.rs",
+      "language": "rust",
+      "content": "See programs/token-vault/src/lib.rs"
+    },
+    {
+      "id": "source_solana_token_vault_idl",
+      "path": "idl/token_vault.json",
+      "language": "text",
+      "content": "See idl/token_vault.json"
+    },
+    {
+      "id": "source_solana_token_vault_notes",
+      "path": "protocol-notes.md",
+      "language": "markdown",
+      "content": "See protocol-notes.md"
+    }
+  ],
+  "assuranceModel": {
+    "version": "1",
+    "targets": [
+      {
+        "id": "target_solana_token_vault",
+        "name": "token_vault",
+        "kind": "program",
+        "runtime": {
+          "family": "solana",
+          "environment": "sbf",
+          "sourceLanguage": "rust"
+        },
+        "sourceIds": [
+          "source_solana_token_vault",
+          "source_solana_token_vault_idl",
+          "source_solana_token_vault_notes"
+        ],
+        "operationIds": ["initialize", "deposit", "withdraw", "pause", "unpause"]
+      }
+    ]
+  },
+  "protocolMap": {
+    "contracts": [],
+    "roles": [],
+    "criticalState": [],
+    "assetFlows": [],
+    "externalCalls": [],
+    "privilegedFunctions": [],
+    "userFlows": [],
+    "tokenDependencies": [],
+    "parserWarnings": ["Solana source intake is not implemented; this protocol map is intentionally empty."]
+  },
+  "claims": [
+    {
+      "id": "claim_solana_vault_custody",
+      "title": "Token vault custody remains accounted",
+      "text": "Deposits and withdrawals should preserve vault token custody and user entitlement within explicit integer rounding bounds.",
+      "source": ["protocol-notes.md", "programs/token-vault/src/lib.rs"],
+      "confidence": 0.82,
+      "relatedContracts": [],
+      "relatedFunctions": [],
+      "relatedTargets": ["target_solana_token_vault"],
+      "relatedOperations": ["deposit", "withdraw"],
+      "severity": "critical",
+      "status": "Human-approved"
+    }
+  ],
+  "properties": [
+    {
+      "id": "property_solana_vault_custody",
+      "claimId": "claim_solana_vault_custody",
+      "text": "After every successful deposit or withdrawal, vault token-account balances and recorded user entitlement should change by the same accounted amount within explicit rounding bounds.",
+      "status": "Draft",
+      "skepticStatus": "Needs human review",
+      "skepticFindings": ["No Solana execution backend has run this property."],
+      "verificationLevel": "human_approved",
+      "risk": "critical",
+      "assumptions": [
+        "assumption_solana_account_validation",
+        "assumption_solana_token_program",
+        "assumption_solana_rounding"
+      ],
+      "evidence": [],
+      "targetIds": ["target_solana_token_vault"],
+      "nextAction": "Implement and run the LiteSVM custody fixture."
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "assumption_solana_account_validation",
+      "text": "Every supplied state and token account is validated for expected owner, type, mint, authority, and discriminator.",
+      "whyItMatters": "Unchecked or incorrectly owned accounts can substitute attacker-controlled state or token custody.",
+      "status": "Needs invariant",
+      "severity": "critical",
+      "relatedProperties": ["property_solana_vault_custody"],
+      "relatedFunctions": [],
+      "relatedTargets": ["target_solana_token_vault"],
+      "relatedOperations": ["initialize", "deposit", "withdraw"]
+    },
+    {
+      "id": "assumption_solana_token_program",
+      "text": "Token CPIs use the intended executable token program and validated mint and token-account relationships.",
+      "whyItMatters": "Configurable or unchecked CPI targets can replace expected token semantics with attacker-controlled behavior.",
+      "status": "Needs test",
+      "severity": "critical",
+      "relatedProperties": ["property_solana_vault_custody"],
+      "relatedFunctions": [],
+      "relatedTargets": ["target_solana_token_vault"],
+      "relatedOperations": ["deposit", "withdraw"]
+    },
+    {
+      "id": "assumption_solana_rounding",
+      "text": "Token decimals and integer accounting rules are explicit and remain within documented bounds.",
+      "whyItMatters": "Integer truncation and decimal mismatches can create value drift.",
+      "status": "Needs invariant",
+      "severity": "high",
+      "relatedProperties": ["property_solana_vault_custody"],
+      "relatedFunctions": [],
+      "relatedTargets": ["target_solana_token_vault"],
+      "relatedOperations": ["deposit", "withdraw"]
+    }
+  ],
+  "verificationRuns": [
+    {
+      "id": "run_solana_litesvm_planned",
+      "tool": "other",
+      "backend": {
+        "id": "backend_litesvm",
+        "name": "LiteSVM",
+        "kind": "test",
+        "runtimeFamily": "solana"
+      },
+      "targetIds": ["target_solana_token_vault"],
+      "command": "cargo test --test litesvm_token_vault",
+      "status": "not_run",
+      "counterexamples": [],
+      "rawOutput": "",
+      "createdAt": "2026-06-15T00:00:00Z"
+    }
+  ],
+  "evidence": [],
+  "reviewRecords": [
+    {
+      "id": "review_solana_custody_claim",
+      "targetType": "claim",
+      "targetId": "claim_solana_vault_custody",
+      "action": "approved",
+      "reviewer": "Fixture reviewer",
+      "comment": "Approved as bounded fixture intent; no execution evidence exists.",
+      "createdAt": "2026-06-15T00:00:00Z"
+    }
+  ]
+}
