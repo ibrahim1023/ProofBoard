@@ -43,6 +43,7 @@ In scope:
 - Deterministic release-blocker evals for claim extraction, unsupported structured claims, property coverage, weak invariants, assumption generation, Foundry parser fixtures, audit packet completeness, and demo schema validity.
 - ERC4626 demo assets and a completed demo load path for showing claims, invariants, assumption debt, parsed fuzz output, the final ledger, and export prep.
 - Guided public-demo workflow with deterministic acceptance checks for weak invariants, unresolved assumptions, donation/inflation concern visibility, parsed Foundry evidence, and separated audit-prep exports.
+- A versioned chain-agnostic assurance model plus EVM deployment inventory for chain IDs, addresses, proxy/admin metadata, oracle feeds, bridge dependencies, and explorer references.
 
 Out of scope for the MVP:
 
@@ -50,7 +51,7 @@ Out of scope for the MVP:
 - Hosted sandbox execution.
 - Automatic formal proof generation.
 - Full arbitrary DeFi support beyond the implemented ERC4626, staking, lending, AMM, bridge, and governance secure-core templates.
-- Chain-specific execution parity for every supported intake type; generated harnesses still require protocol-specific wiring.
+- Chain-specific execution parity for every supported intake type or non-EVM runtime; generated harnesses still require protocol-specific wiring.
 - Authenticated private-repository or mandatory GitHub App integration.
 - Mandatory paid LLM API access.
 

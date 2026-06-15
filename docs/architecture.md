@@ -57,6 +57,12 @@ Claims and assumptions may link to targets and operations. Properties, verificat
 
 The Solidity protocol map and Foundry fields remain supported for backward compatibility and the current executable ERC4626 workflow. Representing a runtime in this model does not imply analyzer, property, execution, parser, or export parity for that runtime.
 
+## EVM Deployment Context
+
+Workspaces may attach one or more EVM deployment records to assurance targets. Each record preserves the network, numeric chain ID, deployed address, block explorer reference, proxy pattern, implementation and administrator addresses, oracle feeds, and bridge dependencies.
+
+Deployment metadata is exported in the ledger and a dedicated deployment inventory. It is review context rather than executed evidence: ProofBoard does not currently verify bytecode, storage layout, proxy slots, administrator ownership, oracle configuration, or bridge configuration against a live chain.
+
 ## LLM Modes
 
 ProofBoard supports:

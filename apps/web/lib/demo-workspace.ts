@@ -161,6 +161,30 @@ export const demoWorkspace: Workspace = {
       }
     ]
   },
+  deployments: [
+    {
+      id: "deployment_example_vault_sepolia",
+      targetId: "target_example_vault",
+      runtimeFamily: "evm",
+      network: "Ethereum Sepolia",
+      chainId: 11155111,
+      address: "0x1111111111111111111111111111111111111111",
+      explorerUrl: "https://sepolia.etherscan.io/address/0x1111111111111111111111111111111111111111",
+      proxy: {
+        kind: "transparent",
+        implementationAddress: "0x2222222222222222222222222222222222222222",
+        adminAddress: "0x3333333333333333333333333333333333333333"
+      },
+      oracleFeeds: [
+        {
+          name: "Example ETH / USD feed",
+          network: "Ethereum Sepolia",
+          assumption: "Demo metadata only; verify the production feed address and freshness policy."
+        }
+      ],
+      bridgeDependencies: []
+    }
+  ],
   protocolMap: {
     contracts: [fallbackContract],
     roles: [
@@ -438,5 +462,10 @@ export const emptyWorkspace: Workspace = {
   properties: [],
   assumptions: [],
   verificationRuns: [],
-  evidence: []
+  evidence: [],
+  assuranceModel: {
+    version: "1",
+    targets: []
+  },
+  deployments: []
 };

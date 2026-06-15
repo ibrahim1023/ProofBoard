@@ -14,6 +14,7 @@ describe("audit packet export", () => {
       "unresolved-assumptions-table.md",
       "verification-evidence-appendix.md",
       "failed-and-fuzzy-evidence.md",
+      "deployment-inventory.md",
       "auditor-questions.md",
       "proofboard-ledger.json",
       "verification-readiness.json",
@@ -78,5 +79,23 @@ describe("audit packet export", () => {
 
     expect(payload.repository).toMatchObject({ provider: "github", ref: "main" });
     expect(payload.approvalPolicy).toEqual({ requiredApprovals: 2 });
+  });
+
+  it("exports EVM deployment, proxy, oracle, and explorer context separately", () => {
+    const bundle = generateFoundryHarnessBundle(demoWorkspace);
+    const packet = buildAuditPacket(demoWorkspace, bundle);
+    const files = generateAuditExportFiles(demoWorkspace, bundle);
+    const inventory = files.find((file) => file.name === "deployment-inventory.md");
+    const ledger = JSON.parse(files.find((file) => file.name === "proofboard-ledger.json")?.content ?? "{}");
+
+    expect(packet.deployments?.[0]).toMatchObject({
+      network: "Ethereum Sepolia",
+      chainId: 11155111,
+      proxy: { kind: "transparent" }
+    });
+    expect(inventory?.content).toContain("Ethereum Sepolia (11155111)");
+    expect(inventory?.content).toContain("Example ETH / USD feed");
+    expect(inventory?.content).toContain("sepolia.etherscan.io");
+    expect(ledger.deployments[0].targetId).toBe("target_example_vault");
   });
 });

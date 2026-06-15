@@ -123,6 +123,7 @@ export interface Workspace {
   repository?: RepositoryImport;
   approvalPolicy?: ApprovalPolicy;
   assuranceModel?: AssuranceModel;
+  deployments?: EvmDeployment[];
 }
 
 export interface AssuranceModel {
@@ -150,6 +151,34 @@ export interface VerificationBackend {
   name: string;
   kind: "test" | "fuzzer" | "symbolic" | "formal" | "manual" | "other";
   runtimeFamily: RuntimeFamily | "agnostic";
+}
+
+export interface EvmDeployment {
+  id: string;
+  targetId: string;
+  runtimeFamily: "evm";
+  network: string;
+  chainId: number;
+  address: string;
+  explorerUrl?: string;
+  proxy?: EvmProxyMetadata;
+  oracleFeeds: DeploymentDependency[];
+  bridgeDependencies: DeploymentDependency[];
+}
+
+export interface EvmProxyMetadata {
+  kind: "transparent" | "uups" | "beacon" | "diamond" | "other";
+  implementationAddress?: string;
+  adminAddress?: string;
+  beaconAddress?: string;
+}
+
+export interface DeploymentDependency {
+  name: string;
+  address?: string;
+  network?: string;
+  referenceUrl?: string;
+  assumption?: string;
 }
 
 export interface RepositoryImport {
@@ -366,6 +395,7 @@ export interface ReviewRecord {
 export interface AuditPacket {
   workspaceId: string;
   assuranceModel?: AssuranceModel;
+  deployments?: EvmDeployment[];
   protocolMap: ProtocolMap;
   approvedClaims: Claim[];
   properties: Property[];
@@ -408,9 +438,50 @@ export function validateWorkspace(workspace: Workspace): ValidationIssue[] {
     requireArray(workspace.assuranceModel.targets, "assuranceModel.targets", issues);
     workspace.assuranceModel.targets.forEach((target, index) => validateAssuranceTarget(target, `assuranceModel.targets.${index}`, issues));
   }
+  workspace.deployments?.forEach((deployment, index) => validateEvmDeployment(deployment, `deployments.${index}`, issues));
   validateWorkspaceLinks(workspace, issues);
 
   return issues;
+}
+
+export function validateEvmDeployment(
+  deployment: EvmDeployment,
+  path = "deployment",
+  issues: ValidationIssue[] = []
+): ValidationIssue[] {
+  requireString(deployment.id, `${path}.id`, issues);
+  requireString(deployment.targetId, `${path}.targetId`, issues);
+  requireEnum(deployment.runtimeFamily, ["evm"] as const, `${path}.runtimeFamily`, issues);
+  requireString(deployment.network, `${path}.network`, issues);
+  if (!Number.isInteger(deployment.chainId) || deployment.chainId < 1) {
+    issues.push({ path: `${path}.chainId`, message: "Chain id must be a positive integer." });
+  }
+  requireString(deployment.address, `${path}.address`, issues);
+  if (deployment.proxy) {
+    requireEnum(
+      deployment.proxy.kind,
+      ["transparent", "uups", "beacon", "diamond", "other"] as const,
+      `${path}.proxy.kind`,
+      issues
+    );
+  }
+  requireArray(deployment.oracleFeeds, `${path}.oracleFeeds`, issues);
+  requireArray(deployment.bridgeDependencies, `${path}.bridgeDependencies`, issues);
+  deployment.oracleFeeds.forEach((dependency, index) =>
+    validateDeploymentDependency(dependency, `${path}.oracleFeeds.${index}`, issues)
+  );
+  deployment.bridgeDependencies.forEach((dependency, index) =>
+    validateDeploymentDependency(dependency, `${path}.bridgeDependencies.${index}`, issues)
+  );
+  return issues;
+}
+
+function validateDeploymentDependency(
+  dependency: DeploymentDependency,
+  path: string,
+  issues: ValidationIssue[]
+) {
+  requireString(dependency.name, `${path}.name`, issues);
 }
 
 export function validateAssuranceTarget(
@@ -513,6 +584,9 @@ function validateWorkspaceLinks(workspace: Workspace, issues: ValidationIssue[])
     target.sourceIds.forEach((sourceId, sourceIndex) =>
       requireLink(sourceIds, sourceId, `assuranceModel.targets.${targetIndex}.sourceIds.${sourceIndex}`, "source", issues)
     );
+  });
+  workspace.deployments?.forEach((deployment, deploymentIndex) => {
+    requireLink(targetIds, deployment.targetId, `deployments.${deploymentIndex}.targetId`, "assurance target", issues);
   });
 
   workspace.properties.forEach((property, propertyIndex) => {

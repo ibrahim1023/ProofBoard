@@ -1,4 +1,4 @@
-import type { AuditPacket, Assumption, Property, Workspace } from "@proofboard/shared-types";
+import type { AuditPacket, Assumption, DeploymentDependency, Property, Workspace } from "@proofboard/shared-types";
 import type { HarnessBundle } from "@proofboard/harness-generator";
 import { assessHarnessQuality, type HarnessQualityReport } from "./harness-quality";
 import { calculateVerificationReadiness, type VerificationReadiness } from "./readiness";
@@ -17,6 +17,7 @@ export function buildAuditPacket(workspace: Workspace, harnessBundle: HarnessBun
   return {
     workspaceId: workspace.id,
     assuranceModel: workspace.assuranceModel,
+    deployments: workspace.deployments,
     protocolMap: workspace.protocolMap,
     approvedClaims: workspace.claims.filter((claim) => claim.status === "Human-approved" || claim.status === "Edited"),
     properties: workspace.properties,
@@ -47,6 +48,7 @@ export function generateAuditExportFiles(workspace: Workspace, harnessBundle: Ha
     markdownFile("unresolved-assumptions-table.md", unresolvedAssumptionsTableMarkdown(workspace.assumptions)),
     markdownFile("verification-evidence-appendix.md", verificationEvidenceAppendixMarkdown(workspace, packet)),
     markdownFile("failed-and-fuzzy-evidence.md", failedAndFuzzyEvidenceMarkdown(workspace, vacuity)),
+    markdownFile("deployment-inventory.md", deploymentInventoryMarkdown(workspace)),
     markdownFile("auditor-questions.md", auditorQuestionsMarkdown(packet, readiness, harnessQuality, vacuity)),
     jsonFile("proofboard-ledger.json", {
       properties: workspace.properties,
@@ -55,6 +57,7 @@ export function generateAuditExportFiles(workspace: Workspace, harnessBundle: Ha
       assumptions: workspace.assumptions,
       reviewRecords: workspace.reviewRecords ?? [],
       assuranceModel: workspace.assuranceModel,
+      deployments: workspace.deployments ?? [],
       repository: workspace.repository,
       approvalPolicy: workspace.approvalPolicy,
       verificationReadiness: readiness,
@@ -69,6 +72,33 @@ export function generateAuditExportFiles(workspace: Workspace, harnessBundle: Ha
     jsonFile("generated-foundry-invariants.json", harnessBundle),
     markdownFile("audit-prep.md", auditPrepMarkdown(packet, readiness, harnessQuality, vacuity))
   ];
+}
+
+function deploymentInventoryMarkdown(workspace: Workspace) {
+  const deployments = workspace.deployments ?? [];
+
+  return `# Deployment Inventory
+
+Deployment metadata is review context, not proof that the listed bytecode, proxy, dependency, or administrator matches production.
+
+${deployments.length === 0 ? "No deployment metadata recorded." : deployments.map((deployment) => `## ${deployment.network} (${deployment.chainId})
+
+- Target: ${deployment.targetId}
+- Address: ${deployment.address}
+- Explorer: ${deployment.explorerUrl || "Not recorded."}
+- Proxy: ${deployment.proxy?.kind || "None recorded."}
+- Implementation: ${deployment.proxy?.implementationAddress || "Not recorded."}
+- Admin: ${deployment.proxy?.adminAddress || "Not recorded."}
+- Beacon: ${deployment.proxy?.beaconAddress || "Not recorded."}
+- Oracle feeds: ${deployment.oracleFeeds.map((dependency) => dependencySummary(dependency)).join("; ") || "None recorded."}
+- Bridge dependencies: ${deployment.bridgeDependencies.map((dependency) => dependencySummary(dependency)).join("; ") || "None recorded."}
+`).join("\n")}
+`;
+}
+
+function dependencySummary(dependency: DeploymentDependency) {
+  const locator = dependency.address || dependency.referenceUrl || dependency.network;
+  return `${dependency.name}${locator ? ` (${locator})` : ""}${dependency.assumption ? ` - ${dependency.assumption}` : ""}`;
 }
 
 function reportMarkdown(workspace: Workspace, packet: AuditPacket, approvedProperties: Property[], readiness: VerificationReadiness) {

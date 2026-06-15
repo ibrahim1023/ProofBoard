@@ -25,6 +25,7 @@ import type {
   AssumptionStatus,
   BoardId,
   Claim,
+  EvmProxyMetadata,
   Property,
   ProtocolType,
   RepositoryImport,
@@ -109,6 +110,7 @@ export function ProofboardWorkspace() {
   const [claimRejectionDrafts, setClaimRejectionDrafts] = useState<Record<string, string>>({});
   const [propertyCommentDrafts, setPropertyCommentDrafts] = useState<Record<string, string>>({});
   const primarySource = workspace.sources[0];
+  const primaryDeployment = workspace.deployments?.[0];
   const allFunctions = workspace.protocolMap.contracts.flatMap((contract) => contract.functions);
 
   const approvedClaims = workspace.claims.filter((claim) => claim.status === "Human-approved").length;
@@ -183,6 +185,82 @@ export function ProofboardWorkspace() {
     }));
   }
 
+  function updateEvmDeployment(
+    field:
+      | "network"
+      | "chainId"
+      | "address"
+      | "explorerUrl"
+      | "proxyKind"
+      | "implementationAddress"
+      | "adminAddress"
+      | "oracleFeeds"
+      | "bridgeDependencies",
+    value: string
+  ) {
+    setWorkspace((current) => {
+      const existingTarget = current.assuranceModel?.targets.find((target) => target.runtime.family === "evm");
+      const target = existingTarget ?? {
+        id: "target_primary_evm",
+        name: current.protocolMap.contracts[0]?.name || current.name || "Primary EVM target",
+        kind: "contract" as const,
+        runtime: {
+          family: "evm" as const,
+          environment: "evm",
+          sourceLanguage: "solidity" as const
+        },
+        sourceIds: current.sources.filter((source) => source.language === "solidity").map((source) => source.id),
+        operationIds: current.protocolMap.contracts.flatMap((contract) => contract.functions.map((fn) => fn.id))
+      };
+      const deployment = current.deployments?.[0] ?? {
+        id: "deployment_primary_evm",
+        targetId: target.id,
+        runtimeFamily: "evm" as const,
+        network: "Ethereum",
+        chainId: 1,
+        address: "",
+        oracleFeeds: [],
+        bridgeDependencies: []
+      };
+      const nextDeployment = { ...deployment };
+
+      if (field === "chainId") {
+        nextDeployment.chainId = Math.max(1, Number.parseInt(value, 10) || 1);
+      } else if (field === "proxyKind") {
+        nextDeployment.proxy =
+          value === "none"
+            ? undefined
+            : {
+                ...nextDeployment.proxy,
+                kind: value as EvmProxyMetadata["kind"]
+              };
+      } else if (field === "implementationAddress" || field === "adminAddress") {
+        nextDeployment.proxy = {
+          kind: nextDeployment.proxy?.kind ?? "other",
+          ...nextDeployment.proxy,
+          [field]: value
+        };
+      } else if (field === "oracleFeeds" || field === "bridgeDependencies") {
+        nextDeployment[field] = value
+          .split("\n")
+          .map((name) => name.trim())
+          .filter(Boolean)
+          .map((name) => ({ name }));
+      } else {
+        nextDeployment[field] = value;
+      }
+
+      return {
+        ...current,
+        assuranceModel: {
+          version: "1",
+          targets: existingTarget ? current.assuranceModel?.targets ?? [] : [...(current.assuranceModel?.targets ?? []), target]
+        },
+        deployments: [nextDeployment, ...(current.deployments?.slice(1) ?? [])]
+      };
+    });
+  }
+
   function updateRequiredApprovals(value: string) {
     const requiredApprovals = Math.max(1, Number.parseInt(value, 10) || 1);
     setWorkspace((current) => ({
@@ -203,6 +281,22 @@ export function ProofboardWorkspace() {
       sources,
       repository,
       protocolMap,
+      assuranceModel: {
+        version: "1",
+        targets: protocolMap.contracts.map((contract) => ({
+          id: `target_${contract.id}`,
+          name: contract.name,
+          kind: "contract",
+          runtime: {
+            family: "evm",
+            environment: "evm",
+            sourceLanguage: "solidity"
+          },
+          sourceIds: sources.filter((source) => source.path === contract.path).map((source) => source.id),
+          operationIds: contract.functions.map((fn) => fn.id)
+        }))
+      },
+      deployments: [],
       claims: suggestClaimsFromProtocolMap(protocolMap),
       properties: [],
       assumptions: suggestTokenAssumptions(protocolMap),
@@ -647,6 +741,94 @@ export function ProofboardWorkspace() {
                   value={workspace.description}
                 />
               </label>
+
+              <div className="section-heading subsection-heading">
+                <p className="eyebrow">EVM deployment context</p>
+                <h3>Chain metadata</h3>
+              </div>
+              <div className="form-grid">
+                <label>
+                  Network
+                  <input
+                    onChange={(event) => updateEvmDeployment("network", event.target.value)}
+                    placeholder="Ethereum Mainnet"
+                    value={primaryDeployment?.network ?? ""}
+                  />
+                </label>
+                <label>
+                  Chain ID
+                  <input
+                    min="1"
+                    onChange={(event) => updateEvmDeployment("chainId", event.target.value)}
+                    type="number"
+                    value={primaryDeployment?.chainId ?? 1}
+                  />
+                </label>
+                <label>
+                  Deployment address
+                  <input
+                    onChange={(event) => updateEvmDeployment("address", event.target.value)}
+                    placeholder="0x..."
+                    value={primaryDeployment?.address ?? ""}
+                  />
+                </label>
+                <label>
+                  Block explorer URL
+                  <input
+                    onChange={(event) => updateEvmDeployment("explorerUrl", event.target.value)}
+                    placeholder="https://etherscan.io/address/0x..."
+                    value={primaryDeployment?.explorerUrl ?? ""}
+                  />
+                </label>
+                <label>
+                  Proxy type
+                  <select
+                    onChange={(event) => updateEvmDeployment("proxyKind", event.target.value)}
+                    value={primaryDeployment?.proxy?.kind ?? "none"}
+                  >
+                    <option value="none">No proxy recorded</option>
+                    <option value="transparent">Transparent</option>
+                    <option value="uups">UUPS</option>
+                    <option value="beacon">Beacon</option>
+                    <option value="diamond">Diamond</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <label>
+                  Proxy admin address
+                  <input
+                    onChange={(event) => updateEvmDeployment("adminAddress", event.target.value)}
+                    placeholder="0x..."
+                    value={primaryDeployment?.proxy?.adminAddress ?? ""}
+                  />
+                </label>
+                <label>
+                  Implementation address
+                  <input
+                    onChange={(event) => updateEvmDeployment("implementationAddress", event.target.value)}
+                    placeholder="0x..."
+                    value={primaryDeployment?.proxy?.implementationAddress ?? ""}
+                  />
+                </label>
+                <label>
+                  Oracle feed references
+                  <textarea
+                    className="notes-input compact-input"
+                    onChange={(event) => updateEvmDeployment("oracleFeeds", event.target.value)}
+                    placeholder="One feed name or address per line"
+                    value={primaryDeployment?.oracleFeeds.map((dependency) => dependency.name).join("\n") ?? ""}
+                  />
+                </label>
+                <label>
+                  Bridge dependencies
+                  <textarea
+                    className="notes-input compact-input"
+                    onChange={(event) => updateEvmDeployment("bridgeDependencies", event.target.value)}
+                    placeholder="One bridge dependency per line"
+                    value={primaryDeployment?.bridgeDependencies.map((dependency) => dependency.name).join("\n") ?? ""}
+                  />
+                </label>
+              </div>
 
               <label>
                 Solidity source

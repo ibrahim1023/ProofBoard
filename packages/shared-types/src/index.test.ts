@@ -3,6 +3,7 @@ import {
   type Workspace,
   validateAssuranceTarget,
   validateAssumption,
+  validateEvmDeployment,
   validateProperty,
   validateReviewRecord,
   validateWorkspace
@@ -211,6 +212,78 @@ describe("shared schema validation", () => {
         operationIds: []
       })[0]?.path
     ).toBe("assuranceTarget.runtime.family");
+  });
+
+  it("accepts EVM multi-chain deployment metadata", () => {
+    const deployment = {
+      id: "deployment_vault_sepolia",
+      targetId: "target_vault",
+      runtimeFamily: "evm" as const,
+      network: "Ethereum Sepolia",
+      chainId: 11155111,
+      address: "0x1111111111111111111111111111111111111111",
+      explorerUrl: "https://sepolia.etherscan.io/address/0x1111111111111111111111111111111111111111",
+      proxy: {
+        kind: "transparent" as const,
+        implementationAddress: "0x2222222222222222222222222222222222222222",
+        adminAddress: "0x3333333333333333333333333333333333333333"
+      },
+      oracleFeeds: [
+        {
+          name: "ETH / USD",
+          address: "0x4444444444444444444444444444444444444444",
+          network: "Ethereum Sepolia",
+          assumption: "Feed freshness is checked before use."
+        }
+      ],
+      bridgeDependencies: [
+        {
+          name: "Canonical message bridge",
+          network: "Ethereum Sepolia to L2",
+          assumption: "Finality follows the documented challenge period."
+        }
+      ]
+    };
+
+    expect(validateEvmDeployment(deployment)).toEqual([]);
+    expect(
+      validateWorkspace({
+        ...validWorkspace,
+        assuranceModel: {
+          version: "1",
+          targets: [
+            {
+              id: "target_vault",
+              name: "ExampleVault",
+              kind: "contract",
+              runtime: { family: "evm", environment: "ethereum", sourceLanguage: "solidity" },
+              sourceIds: ["source_vault"],
+              operationIds: ["deposit"]
+            }
+          ]
+        },
+        deployments: [deployment]
+      })
+    ).toEqual([]);
+  });
+
+  it("rejects invalid EVM chain ids and target links", () => {
+    const deployment = {
+      id: "deployment_invalid",
+      targetId: "target_missing",
+      runtimeFamily: "evm" as const,
+      network: "Unknown",
+      chainId: 0,
+      address: "0x0",
+      oracleFeeds: [],
+      bridgeDependencies: []
+    };
+
+    expect(validateEvmDeployment(deployment)[0]?.path).toBe("deployment.chainId");
+    expect(validateWorkspace({ ...validWorkspace, deployments: [deployment] })[0]?.path).toBe("deployments.0.chainId");
+    expect(validateWorkspace({ ...validWorkspace, deployments: [{ ...deployment, chainId: 1 }] })[0]?.path).toBe(
+      "deployments.0.targetId"
+    );
   });
 
   it("accepts lending market workspaces", () => {

@@ -46,6 +46,31 @@ describe("ProofBoard workspace", () => {
     expect(screen.getByLabelText("Public demo guide")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start completed demo" })).toBeInTheDocument();
     expect(screen.getByText("Donation or inflation concern is represented")).toBeInTheDocument();
+    expect(screen.getByLabelText("Network")).toHaveValue("Ethereum Sepolia");
+    expect(screen.getByLabelText("Chain ID")).toHaveValue(11155111);
+  });
+
+  it("edits EVM chain, proxy, oracle, and bridge deployment metadata", () => {
+    render(<Home />);
+
+    fireEvent.change(screen.getByLabelText("Network"), { target: { value: "Base" } });
+    fireEvent.change(screen.getByLabelText("Chain ID"), { target: { value: "8453" } });
+    fireEvent.change(screen.getByLabelText("Deployment address"), {
+      target: { value: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    });
+    fireEvent.change(screen.getByLabelText("Proxy type"), { target: { value: "uups" } });
+    fireEvent.change(screen.getByLabelText("Oracle feed references"), {
+      target: { value: "ETH / USD\nUSDC / USD" }
+    });
+    fireEvent.change(screen.getByLabelText("Bridge dependencies"), {
+      target: { value: "Canonical L1 bridge" }
+    });
+
+    expect(screen.getByLabelText("Network")).toHaveValue("Base");
+    expect(screen.getByLabelText("Chain ID")).toHaveValue(8453);
+    expect(screen.getByLabelText("Proxy type")).toHaveValue("uups");
+    expect(screen.getByLabelText("Oracle feed references")).toHaveValue("ETH / USD\nUSDC / USD");
+    expect(screen.getByLabelText("Bridge dependencies")).toHaveValue("Canonical L1 bridge");
   });
 
   it("loads the completed demo ledger with fuzz evidence", () => {
@@ -165,6 +190,7 @@ describe("ProofBoard workspace", () => {
       "contract Imported { function stake(uint256 assets) external {} }"
     );
     expect(screen.getByText("github: 1 files at main")).toBeInTheDocument();
+    expect(screen.getByLabelText("Deployment address")).toHaveValue("");
   });
 
   it("validates local LLM claim payloads before review", () => {
