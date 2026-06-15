@@ -56,6 +56,7 @@ Out of scope for the MVP:
 - Mandatory paid LLM API access.
 
 Deferred scope and next expansion candidates are tracked in `docs/deferred-scope.md`.
+The proposed Solana intake, account model, PDA, authority, CPI, lifecycle, and upgrade boundary is documented in `docs/solana-architecture.md`.
 
 ## Tech Stack
 

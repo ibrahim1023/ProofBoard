@@ -63,6 +63,8 @@ Workspaces may attach one or more EVM deployment records to assurance targets. E
 
 Deployment metadata is exported in the ledger and a dedicated deployment inventory. It is review context rather than executed evidence: ProofBoard does not currently verify bytecode, storage layout, proxy slots, administrator ownership, oracle configuration, or bridge configuration against a live chain.
 
+The proposed non-EVM intake boundary is documented in [`solana-architecture.md`](solana-architecture.md).
+
 ## LLM Modes
 
 ProofBoard supports:
