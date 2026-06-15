@@ -92,8 +92,18 @@ export type FunctionVisibility = (typeof functionVisibilities)[number];
 export const functionFlows = ["user", "privileged", "view", "internal"] as const;
 export type FunctionFlow = (typeof functionFlows)[number];
 
+export const runtimeFamilies = ["evm", "solana", "other"] as const;
+export type RuntimeFamily = (typeof runtimeFamilies)[number];
+
+export const assuranceTargetKinds = ["contract", "program", "module", "service"] as const;
+export type AssuranceTargetKind = (typeof assuranceTargetKinds)[number];
+
+export const sourceLanguages = ["solidity", "rust", "markdown", "text", "other"] as const;
+export type SourceLanguage = (typeof sourceLanguages)[number];
+
 export type EvidenceStrength = "none" | "weak" | "medium" | "strong";
 export type VerificationRunStatus = "passed" | "failed" | "errored" | "not_run";
+export type VerificationTool = "foundry" | "manual" | "halmos" | "echidna" | "medusa" | "other";
 export type ReviewTargetType = "claim" | "property";
 export type ReviewAction = "approved" | "edited" | "rejected" | "commented" | "generated";
 
@@ -112,6 +122,34 @@ export interface Workspace {
   reviewRecords?: ReviewRecord[];
   repository?: RepositoryImport;
   approvalPolicy?: ApprovalPolicy;
+  assuranceModel?: AssuranceModel;
+}
+
+export interface AssuranceModel {
+  version: "1";
+  targets: AssuranceTarget[];
+}
+
+export interface AssuranceTarget {
+  id: string;
+  name: string;
+  kind: AssuranceTargetKind;
+  runtime: RuntimeDescriptor;
+  sourceIds: string[];
+  operationIds: string[];
+}
+
+export interface RuntimeDescriptor {
+  family: RuntimeFamily;
+  environment: string;
+  sourceLanguage: SourceLanguage;
+}
+
+export interface VerificationBackend {
+  id: string;
+  name: string;
+  kind: "test" | "fuzzer" | "symbolic" | "formal" | "manual" | "other";
+  runtimeFamily: RuntimeFamily | "agnostic";
 }
 
 export interface RepositoryImport {
@@ -129,7 +167,7 @@ export interface ApprovalPolicy {
 export interface SourceFile {
   id: string;
   path: string;
-  language: "solidity" | "markdown" | "text";
+  language: SourceLanguage;
   content: string;
 }
 
@@ -253,6 +291,8 @@ export interface Claim {
   confidence: number;
   relatedContracts: string[];
   relatedFunctions: string[];
+  relatedTargets?: string[];
+  relatedOperations?: string[];
   severity: Severity;
   status: ReviewStatus;
 }
@@ -268,6 +308,7 @@ export interface Property {
   risk: Severity;
   assumptions: string[];
   evidence: string[];
+  targetIds?: string[];
   nextAction: string;
 }
 
@@ -284,11 +325,15 @@ export interface Assumption {
   acceptedRiskJustification?: string;
   relatedProperties: string[];
   relatedFunctions: string[];
+  relatedTargets?: string[];
+  relatedOperations?: string[];
 }
 
 export interface VerificationRun {
   id: string;
-  tool: "foundry" | "manual" | "halmos" | "echidna" | "medusa";
+  tool: VerificationTool;
+  backend?: VerificationBackend;
+  targetIds?: string[];
   command: string;
   status: VerificationRunStatus;
   counterexamples: string[];
@@ -302,6 +347,9 @@ export interface Evidence {
   source: string;
   strength: EvidenceStrength;
   verificationRunId?: string;
+  backendId?: string;
+  targetIds?: string[];
+  artifactRefs?: string[];
   summary: string;
 }
 
@@ -317,6 +365,7 @@ export interface ReviewRecord {
 
 export interface AuditPacket {
   workspaceId: string;
+  assuranceModel?: AssuranceModel;
   protocolMap: ProtocolMap;
   approvedClaims: Claim[];
   properties: Property[];
@@ -354,8 +403,29 @@ export function validateWorkspace(workspace: Workspace): ValidationIssue[] {
   if (workspace.approvalPolicy && (!Number.isInteger(workspace.approvalPolicy.requiredApprovals) || workspace.approvalPolicy.requiredApprovals < 1)) {
     issues.push({ path: "approvalPolicy.requiredApprovals", message: "Required approvals must be a positive integer." });
   }
+  if (workspace.assuranceModel) {
+    requireEnum(workspace.assuranceModel.version, ["1"] as const, "assuranceModel.version", issues);
+    requireArray(workspace.assuranceModel.targets, "assuranceModel.targets", issues);
+    workspace.assuranceModel.targets.forEach((target, index) => validateAssuranceTarget(target, `assuranceModel.targets.${index}`, issues));
+  }
   validateWorkspaceLinks(workspace, issues);
 
+  return issues;
+}
+
+export function validateAssuranceTarget(
+  target: AssuranceTarget,
+  path = "assuranceTarget",
+  issues: ValidationIssue[] = []
+): ValidationIssue[] {
+  requireString(target.id, `${path}.id`, issues);
+  requireString(target.name, `${path}.name`, issues);
+  requireEnum(target.kind, assuranceTargetKinds, `${path}.kind`, issues);
+  requireEnum(target.runtime.family, runtimeFamilies, `${path}.runtime.family`, issues);
+  requireString(target.runtime.environment, `${path}.runtime.environment`, issues);
+  requireEnum(target.runtime.sourceLanguage, sourceLanguages, `${path}.runtime.sourceLanguage`, issues);
+  requireArray(target.sourceIds, `${path}.sourceIds`, issues);
+  requireArray(target.operationIds, `${path}.operationIds`, issues);
   return issues;
 }
 
@@ -392,8 +462,25 @@ export function validateAssumption(assumption: Assumption, path = "assumption", 
 
 export function validateVerificationRun(run: VerificationRun, path = "verificationRun", issues: ValidationIssue[] = []): ValidationIssue[] {
   requireString(run.id, `${path}.id`, issues);
+  requireEnum(run.tool, ["foundry", "manual", "halmos", "echidna", "medusa", "other"] as const, `${path}.tool`, issues);
   requireString(run.command, `${path}.command`, issues);
   requireEnum(run.status, ["passed", "failed", "errored", "not_run"] as const, `${path}.status`, issues);
+  if (run.backend) {
+    requireString(run.backend.id, `${path}.backend.id`, issues);
+    requireString(run.backend.name, `${path}.backend.name`, issues);
+    requireEnum(
+      run.backend.kind,
+      ["test", "fuzzer", "symbolic", "formal", "manual", "other"] as const,
+      `${path}.backend.kind`,
+      issues
+    );
+    requireEnum(
+      run.backend.runtimeFamily,
+      ["evm", "solana", "other", "agnostic"] as const,
+      `${path}.backend.runtimeFamily`,
+      issues
+    );
+  }
   return issues;
 }
 
@@ -419,6 +506,14 @@ function validateWorkspaceLinks(workspace: Workspace, issues: ValidationIssue[])
   const propertyIds = new Set(workspace.properties.map((property) => property.id));
   const assumptionIds = new Set(workspace.assumptions.map((assumption) => assumption.id));
   const evidenceIds = new Set(workspace.evidence.map((evidence) => evidence.id));
+  const sourceIds = new Set(workspace.sources.map((source) => source.id));
+  const targetIds = new Set(workspace.assuranceModel?.targets.map((target) => target.id) ?? []);
+
+  workspace.assuranceModel?.targets.forEach((target, targetIndex) => {
+    target.sourceIds.forEach((sourceId, sourceIndex) =>
+      requireLink(sourceIds, sourceId, `assuranceModel.targets.${targetIndex}.sourceIds.${sourceIndex}`, "source", issues)
+    );
+  });
 
   workspace.properties.forEach((property, propertyIndex) => {
     requireLink(claimIds, property.claimId, `properties.${propertyIndex}.claimId`, "claim", issues);
@@ -427,6 +522,9 @@ function validateWorkspaceLinks(workspace: Workspace, issues: ValidationIssue[])
     );
     property.evidence.forEach((evidenceId, evidenceIndex) =>
       requireLink(evidenceIds, evidenceId, `properties.${propertyIndex}.evidence.${evidenceIndex}`, "evidence", issues)
+    );
+    property.targetIds?.forEach((targetId, targetIndex) =>
+      requireLink(targetIds, targetId, `properties.${propertyIndex}.targetIds.${targetIndex}`, "assurance target", issues)
     );
   });
 
@@ -438,6 +536,24 @@ function validateWorkspaceLinks(workspace: Workspace, issues: ValidationIssue[])
 
   workspace.evidence.forEach((evidence, evidenceIndex) => {
     requireLink(propertyIds, evidence.propertyId, `evidence.${evidenceIndex}.propertyId`, "property", issues);
+    evidence.targetIds?.forEach((targetId, targetIndex) =>
+      requireLink(targetIds, targetId, `evidence.${evidenceIndex}.targetIds.${targetIndex}`, "assurance target", issues)
+    );
+  });
+  workspace.claims.forEach((claim, claimIndex) => {
+    claim.relatedTargets?.forEach((targetId, targetIndex) =>
+      requireLink(targetIds, targetId, `claims.${claimIndex}.relatedTargets.${targetIndex}`, "assurance target", issues)
+    );
+  });
+  workspace.assumptions.forEach((assumption, assumptionIndex) => {
+    assumption.relatedTargets?.forEach((targetId, targetIndex) =>
+      requireLink(targetIds, targetId, `assumptions.${assumptionIndex}.relatedTargets.${targetIndex}`, "assurance target", issues)
+    );
+  });
+  workspace.verificationRuns.forEach((run, runIndex) => {
+    run.targetIds?.forEach((targetId, targetIndex) =>
+      requireLink(targetIds, targetId, `verificationRuns.${runIndex}.targetIds.${targetIndex}`, "assurance target", issues)
+    );
   });
   workspace.reviewRecords?.forEach((record, recordIndex) => {
     const ids = record.targetType === "claim" ? claimIds : propertyIds;

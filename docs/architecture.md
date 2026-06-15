@@ -44,6 +44,19 @@ Backend and analysis:
 - `packages/result-parser/`: parses Foundry output and maps results to properties and evidence.
 - `packages/shared-types/`: defines workspace, contract, claim, property, assumption, and verification-run schemas.
 
+## Chain-Agnostic Assurance Model
+
+The workspace may include a versioned assurance model alongside the existing Solidity protocol map. The model defines runtime-neutral assurance targets with:
+
+- target identity and kind, such as contract, program, module, or service
+- runtime family and execution environment
+- source language and linked source records
+- operation identifiers independent of Solidity function terminology
+
+Claims and assumptions may link to targets and operations. Properties, verification runs, and evidence may link to targets. Verification runs may also carry a backend descriptor that identifies test, fuzzing, symbolic, formal, manual, or other evidence production without changing the evidence status vocabulary.
+
+The Solidity protocol map and Foundry fields remain supported for backward compatibility and the current executable ERC4626 workflow. Representing a runtime in this model does not imply analyzer, property, execution, parser, or export parity for that runtime.
+
 ## LLM Modes
 
 ProofBoard supports:

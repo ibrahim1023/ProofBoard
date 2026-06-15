@@ -16,6 +16,7 @@ export function buildAuditPacket(workspace: Workspace, harnessBundle: HarnessBun
 
   return {
     workspaceId: workspace.id,
+    assuranceModel: workspace.assuranceModel,
     protocolMap: workspace.protocolMap,
     approvedClaims: workspace.claims.filter((claim) => claim.status === "Human-approved" || claim.status === "Edited"),
     properties: workspace.properties,
@@ -53,6 +54,7 @@ export function generateAuditExportFiles(workspace: Workspace, harnessBundle: Ha
       verificationRuns: workspace.verificationRuns,
       assumptions: workspace.assumptions,
       reviewRecords: workspace.reviewRecords ?? [],
+      assuranceModel: workspace.assuranceModel,
       repository: workspace.repository,
       approvalPolicy: workspace.approvalPolicy,
       verificationReadiness: readiness,

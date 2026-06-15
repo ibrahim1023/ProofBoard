@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type Workspace,
+  validateAssuranceTarget,
   validateAssumption,
   validateProperty,
   validateReviewRecord,
@@ -117,6 +118,101 @@ describe("shared schema validation", () => {
     expect(validateWorkspace(validWorkspace)).toEqual([]);
   });
 
+  it("accepts a chain-agnostic assurance model independently from execution support", () => {
+    const workspace: Workspace = {
+      ...validWorkspace,
+      sources: [
+        {
+          id: "source_program",
+          path: "programs/token-vault/src/lib.rs",
+          language: "rust",
+          content: "use anchor_lang::prelude::*;"
+        }
+      ],
+      assuranceModel: {
+        version: "1",
+        targets: [
+          {
+            id: "target_token_vault",
+            name: "TokenVault",
+            kind: "program",
+            runtime: {
+              family: "solana",
+              environment: "sbf",
+              sourceLanguage: "rust"
+            },
+            sourceIds: ["source_program"],
+            operationIds: ["initialize", "deposit", "withdraw"]
+          }
+        ]
+      },
+      claims: validWorkspace.claims.map((claim) => ({
+        ...claim,
+        relatedTargets: ["target_token_vault"],
+        relatedOperations: ["withdraw"]
+      })),
+      properties: validWorkspace.properties.map((property) => ({
+        ...property,
+        targetIds: ["target_token_vault"]
+      })),
+      assumptions: validWorkspace.assumptions.map((assumption) => ({
+        ...assumption,
+        relatedTargets: ["target_token_vault"],
+        relatedOperations: ["deposit"]
+      })),
+      verificationRuns: validWorkspace.verificationRuns.map((run) => ({
+        ...run,
+        targetIds: ["target_token_vault"],
+        backend: {
+          id: "backend_manual",
+          name: "Manual architecture review",
+          kind: "manual",
+          runtimeFamily: "agnostic"
+        }
+      })),
+      evidence: validWorkspace.evidence.map((evidence) => ({
+        ...evidence,
+        targetIds: ["target_token_vault"],
+        backendId: "backend_manual",
+        artifactRefs: ["review/token-vault.md"]
+      }))
+    };
+
+    expect(validateWorkspace(workspace)).toEqual([]);
+  });
+
+  it("validates assurance target runtime descriptors", () => {
+    expect(
+      validateAssuranceTarget({
+        id: "target_vault",
+        name: "Vault",
+        kind: "contract",
+        runtime: {
+          family: "evm",
+          environment: "ethereum",
+          sourceLanguage: "solidity"
+        },
+        sourceIds: ["source_vault"],
+        operationIds: ["deposit"]
+      })
+    ).toEqual([]);
+
+    expect(
+      validateAssuranceTarget({
+        id: "target_vault",
+        name: "Vault",
+        kind: "contract",
+        runtime: {
+          family: "unknown" as never,
+          environment: "ethereum",
+          sourceLanguage: "solidity"
+        },
+        sourceIds: [],
+        operationIds: []
+      })[0]?.path
+    ).toBe("assuranceTarget.runtime.family");
+  });
+
   it("accepts lending market workspaces", () => {
     expect(validateWorkspace({ ...validWorkspace, protocolType: "lending_market" })).toEqual([]);
   });
@@ -227,6 +323,30 @@ describe("shared schema validation", () => {
         "evidence.0.propertyId",
         "reviewRecords.0.targetId"
       ])
+    );
+  });
+
+  it("rejects broken assurance target and source links", () => {
+    const issues = validateWorkspace({
+      ...validWorkspace,
+      assuranceModel: {
+        version: "1",
+        targets: [
+          {
+            id: "target_vault",
+            name: "Vault",
+            kind: "contract",
+            runtime: { family: "evm", environment: "ethereum", sourceLanguage: "solidity" },
+            sourceIds: ["source_missing"],
+            operationIds: []
+          }
+        ]
+      },
+      claims: [{ ...validWorkspace.claims[0], relatedTargets: ["target_missing"] }]
+    });
+
+    expect(issues.map((issue) => issue.path)).toEqual(
+      expect.arrayContaining(["assuranceModel.targets.0.sourceIds.0", "claims.0.relatedTargets.0"])
     );
   });
 });

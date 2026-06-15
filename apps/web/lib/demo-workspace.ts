@@ -144,6 +144,23 @@ export const demoWorkspace: Workspace = {
   description:
     "ERC4626 vault with pause controls, share accounting flows, and fee recipient administration.",
   sources: [sourceFile],
+  assuranceModel: {
+    version: "1",
+    targets: [
+      {
+        id: "target_example_vault",
+        name: "ExampleVault",
+        kind: "contract",
+        runtime: {
+          family: "evm",
+          environment: "ethereum",
+          sourceLanguage: "solidity"
+        },
+        sourceIds: ["source_example_vault"],
+        operationIds: demoFunctions.map((fn) => fn.id)
+      }
+    ]
+  },
   protocolMap: {
     contracts: [fallbackContract],
     roles: [
