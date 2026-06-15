@@ -158,7 +158,7 @@ Backend-specific result records should link to the Solana target and instruction
 ### Stage 3: Property And Evidence Parity
 
 - use the implemented Solana token-vault templates for custody, account ownership, authority binding, PDA integrity, CPI boundaries, rounding, account lifecycle, upgrade authority, and emergency controls
-- generate backend-specific test scaffolds
+- follow the backend order in [`solana-verification-backends.md`](solana-verification-backends.md), starting with LiteSVM and Mollusk before stateful fuzzing or optional formal verification
 - parse executed evidence into the verification ledger
 - add Solana-aware audit packet sections
 
