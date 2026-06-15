@@ -35,6 +35,17 @@ export interface LlmClaimValidation {
   refusal?: string;
 }
 
+export interface SolanaTokenVaultContext {
+  targetId: string;
+  programName: string;
+  instructionNames: string[];
+  accountNames: string[];
+  hasPauseControl: boolean;
+  hasUpgradeAuthority: boolean;
+  pdaNames: string[];
+  cpiProgramNames: string[];
+}
+
 export const claimSuggestionBoundaries: ClaimSuggestionBoundary[] = [
   {
     mode: "template",
@@ -312,6 +323,123 @@ export function generatePropertiesFromClaims(claims: Claim[], map: ProtocolMap):
     .filter((claim) => claim.status === "Human-approved" || claim.status === "Edited")
     .flatMap((claim) => propertyTemplatesForClaim(claim, map))
     .map((property) => applySkepticReview(property, map));
+}
+
+export function suggestSolanaTokenVaultClaims(context: SolanaTokenVaultContext): Claim[] {
+  return solanaClaimTemplates(context).map((template) => ({
+    id: template.id,
+    title: template.title,
+    text: template.text,
+    source: template.source,
+    confidence: template.confidence,
+    relatedContracts: [],
+    relatedFunctions: [],
+    relatedTargets: [context.targetId],
+    relatedOperations: template.relatedOperations.filter((operation) =>
+      context.instructionNames.some((instruction) => instruction.toLowerCase().includes(operation.toLowerCase()))
+    ),
+    severity: template.severity,
+    status: "AI-inferred"
+  }));
+}
+
+export function generateSolanaTokenVaultProperties(
+  claims: Claim[],
+  context: SolanaTokenVaultContext
+): Property[] {
+  return claims
+    .filter((claim) => claim.status === "Human-approved" || claim.status === "Edited")
+    .flatMap((claim) => solanaPropertyForClaim(claim, context));
+}
+
+export function suggestSolanaTokenVaultAssumptions(context: SolanaTokenVaultContext): Assumption[] {
+  const base = {
+    relatedProperties: [],
+    relatedFunctions: [],
+    relatedTargets: [context.targetId]
+  };
+  const assumptions: Assumption[] = [
+    {
+      ...base,
+      id: "assumption_solana_account_validation",
+      text: "Every supplied state and token account is validated for expected owner, type, mint, authority, and discriminator.",
+      whyItMatters: "Unchecked or incorrectly owned accounts can substitute attacker-controlled state or token custody.",
+      status: "Needs invariant",
+      severity: "critical",
+      relatedOperations: context.instructionNames
+    },
+    {
+      ...base,
+      id: "assumption_solana_authority_binding",
+      text: "Signer and authority accounts are bound to the intended vault, user, and administrative role for every instruction.",
+      whyItMatters: "A signer check alone does not prove that the signer is the authority recorded by the relevant vault state.",
+      status: "Needs invariant",
+      severity: "critical",
+      relatedOperations: context.instructionNames
+    },
+    {
+      ...base,
+      id: "assumption_solana_pda_derivation",
+      text: "Vault and authority PDAs use complete domain-separated seeds, the intended program id, and canonical bump handling.",
+      whyItMatters: "Ambiguous seeds or incorrect signer seeds can bind instructions or CPIs to the wrong account authority.",
+      status: "Needs invariant",
+      severity: "critical",
+      relatedOperations: context.pdaNames
+    },
+    {
+      ...base,
+      id: "assumption_solana_token_program",
+      text: "Token CPIs use the intended executable token program and validated mint and token-account relationships.",
+      whyItMatters: "Configurable or unchecked CPI targets can replace expected token semantics with attacker-controlled behavior.",
+      status: "Needs test",
+      severity: "critical",
+      relatedOperations: context.cpiProgramNames
+    },
+    {
+      ...base,
+      id: "assumption_solana_rounding",
+      text: "Token decimals, share conversion, and integer rounding rules are explicit and remain within documented bounds.",
+      whyItMatters: "Integer truncation and decimal mismatches can create zero-share deposits, excess withdrawals, or value drift.",
+      status: "Needs invariant",
+      severity: "high",
+      relatedOperations: context.instructionNames.filter((name) => /deposit|withdraw|mint|redeem/i.test(name))
+    },
+    {
+      ...base,
+      id: "assumption_solana_account_lifecycle",
+      text: "Vault accounts cannot be reinitialized, unsafely reallocated, or closed to an unauthorized recipient.",
+      whyItMatters: "Account lifecycle mistakes can erase authority state, leak rent lamports, or permit state takeover.",
+      status: "Needs test",
+      severity: "high",
+      relatedOperations: context.instructionNames.filter((name) => /init|close|realloc/i.test(name))
+    }
+  ];
+
+  if (context.hasPauseControl) {
+    assumptions.push({
+      ...base,
+      id: "assumption_solana_emergency_scope",
+      text: "Pause and emergency authorities can only perform documented bounded actions and preserve an authorized recovery path.",
+      whyItMatters: "Unbounded emergency authority can freeze, redirect, or release vault assets outside approved intent.",
+      status: "Unresolved",
+      severity: "high",
+      relatedOperations: context.instructionNames.filter((name) => /pause|unpause|emergency/i.test(name))
+    });
+  }
+
+  if (context.hasUpgradeAuthority) {
+    assumptions.push({
+      ...base,
+      id: "assumption_solana_upgrade_authority",
+      text: "The deployed program upgrade authority follows documented governance or has been intentionally revoked.",
+      whyItMatters: "An uncontrolled upgrade authority can replace all validated program behavior after review.",
+      status: "Needs formal proof",
+      severity: "critical",
+      relatedOperations: []
+    });
+  }
+
+  return assumptions;
 }
 
 export function applySkepticReview(property: Property, map: ProtocolMap): Property {
@@ -932,6 +1060,159 @@ function propertyTemplatesForClaim(claim: Claim, map: ProtocolMap): Property[] {
       nextAction: "Review and strengthen this property before generating a test harness."
     }
   ];
+}
+
+function solanaClaimTemplates(context: SolanaTokenVaultContext) {
+  const templates = [
+    {
+      id: "claim_solana_vault_custody",
+      title: "Token vault custody remains accounted",
+      text: "Deposits and withdrawals should preserve vault token custody and user entitlement within explicit integer rounding bounds.",
+      confidence: 0.82,
+      severity: "critical" as const,
+      relatedOperations: ["deposit", "withdraw", "mint", "redeem"],
+      source: ["Solana token-vault intake", "token account and instruction map"]
+    },
+    {
+      id: "claim_solana_authority_constraints",
+      title: "Vault authority constraints bind every signer",
+      text: "Every privileged or user instruction should require the signer and authority relationships documented for the vault state.",
+      confidence: 0.86,
+      severity: "critical" as const,
+      relatedOperations: context.instructionNames,
+      source: ["Anchor account constraints", "signer and authority map"]
+    },
+    {
+      id: "claim_solana_account_ownership",
+      title: "Vault accounts require expected ownership",
+      text: "State, mint, and token accounts should be owned by the expected programs and match the documented vault relationships.",
+      confidence: 0.88,
+      severity: "critical" as const,
+      relatedOperations: context.instructionNames,
+      source: ["account ownership map", "token account constraints"]
+    },
+    {
+      id: "claim_solana_pda_integrity",
+      title: "PDA derivation preserves vault identity",
+      text: "Vault and authority PDAs should use complete domain-separated seeds and only sign for the intended vault operations.",
+      confidence: 0.84,
+      severity: "critical" as const,
+      relatedOperations: context.pdaNames,
+      source: ["PDA seed map", "invoke_signed usage"]
+    },
+    {
+      id: "claim_solana_cpi_boundary",
+      title: "Cross-program calls preserve trust boundaries",
+      text: "Every CPI should target the intended executable program and forward only the signer and writable privileges required by approved intent.",
+      confidence: 0.8,
+      severity: "critical" as const,
+      relatedOperations: context.cpiProgramNames,
+      source: ["CPI dependency map", "forwarded account privileges"]
+    },
+    {
+      id: "claim_solana_rounding_bounds",
+      title: "Vault arithmetic respects rounding bounds",
+      text: "Share and asset conversion should preserve documented rounding direction and prevent zero-value or excess-value outcomes.",
+      confidence: 0.78,
+      severity: "high" as const,
+      relatedOperations: ["deposit", "withdraw", "mint", "redeem"],
+      source: ["token decimals", "vault arithmetic flows"]
+    }
+  ];
+
+  if (context.hasPauseControl) {
+    templates.push({
+      id: "claim_solana_emergency_controls",
+      title: "Emergency controls remain bounded",
+      text: "Pause and emergency instructions should block only documented flows and preserve an authorized recovery path.",
+      confidence: 0.82,
+      severity: "high",
+      relatedOperations: ["pause", "unpause", "emergency"],
+      source: ["emergency instruction map", "authority constraints"]
+    });
+  }
+
+  return templates;
+}
+
+function solanaPropertyForClaim(claim: Claim, context: SolanaTokenVaultContext): Property[] {
+  const base = {
+    claimId: claim.id,
+    status: "Draft" as const,
+    skepticStatus: "Needs human review" as const,
+    skepticFindings: ["Generated Solana draft requires account, authority, and backend review before execution evidence is trusted."],
+    verificationLevel: "human_approved" as const,
+    risk: claim.severity,
+    evidence: [],
+    targetIds: [context.targetId]
+  };
+  const title = claim.title.toLowerCase();
+
+  if (title.includes("custody")) {
+    return [{
+      ...base,
+      id: "property_solana_vault_custody",
+      text: "After every successful deposit or withdrawal, vault token-account balances and recorded user entitlement should change by the same accounted amount within explicit rounding bounds.",
+      assumptions: ["assumption_solana_account_validation", "assumption_solana_token_program", "assumption_solana_rounding"],
+      nextAction: "Generate multi-user deposit, withdrawal, wrong-mint, and rounding scenarios."
+    }];
+  }
+  if (title.includes("authority constraints")) {
+    return [{
+      ...base,
+      id: "property_solana_authority_constraints",
+      text: "Every instruction should reject missing, substituted, or unrelated signers unless the signer matches the authority relationship stored for the targeted vault or user state.",
+      assumptions: ["assumption_solana_authority_binding", "assumption_solana_account_validation"],
+      nextAction: "Generate substituted-signer and mismatched-authority account scenarios."
+    }];
+  }
+  if (title.includes("expected ownership")) {
+    return [{
+      ...base,
+      id: "property_solana_account_ownership",
+      text: "Every state, mint, vault token, and user token account should reject unexpected owner programs, discriminators, mints, or token authorities before state mutation or CPI.",
+      assumptions: ["assumption_solana_account_validation", "assumption_solana_token_program"],
+      nextAction: "Generate wrong-owner, wrong-discriminator, wrong-mint, and wrong-token-authority scenarios."
+    }];
+  }
+  if (title.includes("pda derivation")) {
+    return [{
+      ...base,
+      id: "property_solana_pda_integrity",
+      text: "Every vault or authority PDA should match the documented program id, complete seed tuple, and canonical bump, and PDA signing should authorize only its intended CPI.",
+      assumptions: ["assumption_solana_pda_derivation"],
+      nextAction: "Generate altered-seed, altered-bump, cross-vault, and signer-seed substitution scenarios."
+    }];
+  }
+  if (title.includes("cross-program")) {
+    return [{
+      ...base,
+      id: "property_solana_cpi_boundary",
+      text: "Every CPI should reject an unexpected program account and should not forward signer or writable privileges beyond those required for the documented external operation.",
+      assumptions: ["assumption_solana_token_program", "assumption_solana_pda_derivation"],
+      nextAction: "Generate substituted-program, excess-privilege, and incorrect-PDA-signer scenarios."
+    }];
+  }
+  if (title.includes("rounding")) {
+    return [{
+      ...base,
+      id: "property_solana_rounding_bounds",
+      text: "For every asset and share conversion, integer rounding should follow the documented direction, prevent zero-share value transfer, and keep cumulative accounting drift within an explicit bound.",
+      assumptions: ["assumption_solana_rounding"],
+      nextAction: "Generate boundary-value, decimal-mismatch, repeated-small-deposit, and full-withdrawal scenarios."
+    }];
+  }
+  if (title.includes("emergency")) {
+    return [{
+      ...base,
+      id: "property_solana_emergency_controls",
+      text: "While paused, documented asset-moving instructions should fail without mutation, unauthorized callers should not change pause state, and the approved authority should retain a recovery path.",
+      assumptions: ["assumption_solana_emergency_scope", "assumption_solana_authority_binding"],
+      nextAction: "Generate pause authorization, blocked-flow, unaffected-read, and recovery scenarios."
+    }];
+  }
+
+  return [];
 }
 
 function resolveFunctionNames(map: ProtocolMap, candidates: string[]) {

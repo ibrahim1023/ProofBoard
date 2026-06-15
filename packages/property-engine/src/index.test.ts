@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import { analyzeSoliditySource } from "@proofboard/analyzer";
 import {
   generatePropertiesFromClaims,
+  generateSolanaTokenVaultProperties,
   applySkepticReview,
   claimSuggestionBoundaries,
   linkAssumptionsToProperties,
   suggestClaimsFromProtocolMap,
+  suggestSolanaTokenVaultAssumptions,
+  suggestSolanaTokenVaultClaims,
   suggestTokenAssumptions,
   validateLlmClaimEnvelope
 } from "./index";
@@ -333,6 +336,84 @@ describe("property engine", () => {
         "assumption_upgrade_storage_layout",
         "assumption_governance_emergency_scope"
       ])
+    );
+  });
+
+  it("generates review-gated Solana token-vault claims, properties, and assumptions", () => {
+    const context = {
+      targetId: "target_solana_token_vault",
+      programName: "token_vault",
+      instructionNames: ["initialize", "deposit", "withdraw", "pause", "unpause", "close_vault"],
+      accountNames: ["vault", "vault_authority", "vault_token_account", "user_token_account", "mint"],
+      hasPauseControl: true,
+      hasUpgradeAuthority: true,
+      pdaNames: ["vault", "vault_authority"],
+      cpiProgramNames: ["token_program", "system_program"]
+    };
+    const claims = suggestSolanaTokenVaultClaims(context);
+    const properties = generateSolanaTokenVaultProperties(
+      claims.map((claim) => ({ ...claim, status: "Human-approved" as const })),
+      context
+    );
+    const assumptions = suggestSolanaTokenVaultAssumptions(context);
+
+    expect(claims.every((claim) => claim.status === "AI-inferred")).toBe(true);
+    expect(claims.map((claim) => claim.id)).toEqual(
+      expect.arrayContaining([
+        "claim_solana_vault_custody",
+        "claim_solana_authority_constraints",
+        "claim_solana_account_ownership",
+        "claim_solana_pda_integrity",
+        "claim_solana_cpi_boundary",
+        "claim_solana_rounding_bounds",
+        "claim_solana_emergency_controls"
+      ])
+    );
+    expect(claims[0]?.relatedTargets).toEqual(["target_solana_token_vault"]);
+    expect(properties.map((property) => property.id)).toEqual(
+      expect.arrayContaining([
+        "property_solana_vault_custody",
+        "property_solana_authority_constraints",
+        "property_solana_account_ownership",
+        "property_solana_pda_integrity",
+        "property_solana_cpi_boundary",
+        "property_solana_rounding_bounds",
+        "property_solana_emergency_controls"
+      ])
+    );
+    expect(properties.every((property) => property.targetIds?.includes(context.targetId))).toBe(true);
+    expect(assumptions.map((assumption) => assumption.id)).toEqual(
+      expect.arrayContaining([
+        "assumption_solana_account_validation",
+        "assumption_solana_authority_binding",
+        "assumption_solana_pda_derivation",
+        "assumption_solana_token_program",
+        "assumption_solana_rounding",
+        "assumption_solana_account_lifecycle",
+        "assumption_solana_emergency_scope",
+        "assumption_solana_upgrade_authority"
+      ])
+    );
+  });
+
+  it("does not generate Solana properties before human approval", () => {
+    const context = {
+      targetId: "target_solana_token_vault",
+      programName: "token_vault",
+      instructionNames: ["deposit", "withdraw"],
+      accountNames: ["vault", "vault_token_account"],
+      hasPauseControl: false,
+      hasUpgradeAuthority: false,
+      pdaNames: ["vault"],
+      cpiProgramNames: ["token_program"]
+    };
+
+    expect(generateSolanaTokenVaultProperties(suggestSolanaTokenVaultClaims(context), context)).toEqual([]);
+    expect(suggestSolanaTokenVaultClaims(context).map((claim) => claim.id)).not.toContain(
+      "claim_solana_emergency_controls"
+    );
+    expect(suggestSolanaTokenVaultAssumptions(context).map((assumption) => assumption.id)).not.toContain(
+      "assumption_solana_upgrade_authority"
     );
   });
 });

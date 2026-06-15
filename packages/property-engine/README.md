@@ -20,6 +20,7 @@ Expanded secure-core templates:
 - AMM reserve synchronization, LP share accounting, swap invariants, and fee accounting
 - bridge message validity, replay protection, relayer trust, domain separation, and finality
 - governance proposal lifecycle, timelocks, upgrade authorization, storage-layout risk, and emergency controls
+- Solana token-vault custody, account ownership, signer/authority binding, PDA integrity, CPI trust boundaries, arithmetic, account lifecycle, upgrade authority, and emergency controls
 
 Current implementation:
 
@@ -30,3 +31,4 @@ Current implementation:
 - property generation only uses `Human-approved` or `Edited` claims
 - generated properties start as `Draft` with `human_approved` verification level
 - domain and token assumption templates for ERC20 behavior, staking liquidity, lending oracles, AMM reserves, bridge finality, and governance upgrades
+- a separate Solana token-vault template API that consumes explicit account-based context rather than treating programs as Solidity contracts
